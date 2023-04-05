@@ -174,7 +174,26 @@ dim(H_cells)
 metadata$species <- posteriors[,3]
 write.csv(metadata, "metadata_alt.csv")
 
+metadata_pmm <- read.csv("metadata_pmm.csv")
+metadata_mr <- read.csv(metadata_alt.csv
 
+H_cells <- metadata_pmm[meta$species =="h",]
+M_cells <- metadata_pmm[meta$species =="m",]
+dim(H_cells)
+59543    40
+dim(M_cells)
+10909    40
+dim(meta)
+70452    40
+
+H_cells <- metadata_mr[meta$species_mr =="h",]
+M_cells <- metadata_mr[meta$species_mr =="m",]
+dim(H_cells)
+54149    40
+dim(M_cells)
+16303    40
+dim(meta)
+70452    40
 
 
 
