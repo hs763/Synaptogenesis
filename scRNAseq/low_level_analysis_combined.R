@@ -1,3 +1,6 @@
+singularity shell --bind /data2:/mnt luca_r_env.sif
+
+
 library(scuttle)
 library(scran)
 library(irlba)
