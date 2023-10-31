@@ -1,16 +1,18 @@
-library(scuttle)
-library(scran)
-library(irlba)
-library(Rtsne)
+singularity shell --bind /data2:/mnt luca_r_env.sif
+
 library(Matrix)
 library(ggplot2)
-library(biomaRt)
 library(viridisLite)
 library(viridis)
-library(scDblFinder)
+library(Rtsne)
 
-path2data   <- '/data2/hanna/synaptogenesis/newvolume/analysis/combined_h/all-well/DGE_unfiltered'
-sample_info <- read.table('/data2/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab',
+library(scDblFinder)
+library(biomaRt)
+library(scran)
+library(irlba)
+
+path2data   <- '/mnt/hanna/synaptogenesis/newvolume/analysis2/combined_h/all-sample/DGE_unfiltered'
+sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab',
   sep = "\t", header = TRUE)
 
 #read the spare matrix into counts
