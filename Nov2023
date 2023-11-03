@@ -60,6 +60,7 @@ for (i in 1:length(samples)){
   sample_bc1_well[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))] <- sample_info$Sample_well[i]
   sample_number[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]   <- sample_info$Sample_Number[i]
   sample_name[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]     <- sample_info$Sample_name_H[i]
+
 }
 
 submeta <- data.frame(rlist::list.rbind(strsplit(sample_name, split="_")))
