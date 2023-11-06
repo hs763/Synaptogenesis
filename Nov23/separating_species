@@ -74,22 +74,31 @@ for (i in 1:length(samples)){
   sample_name_M[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]     <- sample_info$Sample_name_M[i]
 }
 
-head
-metadata <- data.frame(cbind(metadata, lib.sizes, sample_number, sample_bc1_well, sample_name, submeta))
+submeta_H <- data.frame(rlist::list.rbind(strsplit(sample_name_H, split="_")))
+colnames(submeta_H) <- c("batch_H", "day_H", "replicate_H")
+submeta_H$day_H <- gsub("d","",submeta_H$day_H)
 
-#runing initial QC
-print(paste('Number of cells with >400 expressed genes', ncol(counts[,ngenes > 400])))
+submeta_M <- data.frame(rlist::list.rbind(strsplit(sample_name_M, split="_")))
+colnames(submeta_M) <- c("batch_M", "day_M", "replicate_M")
+submeta_M$day_M <- gsub("d","",submeta_M$day_M)
+
+metadata <- data.frame(cbind(metadata, lib.sizes, sample_number, sample_bc1_well, sample_name_H, sample_name_M, submeta_H, submeta_M))
+
+dim(metadata)
+#70452    29
+dim(counts) 
+#119684  70452
 
 #finding the mapping rates
 metadata$rate_h <- metadata$hg38_tscp_count/metadata$tscp_count
 metadata$rate_m <- metadata$mm10_tscp_count/metadata$tscp_count
 
 #PLOTTING MAPPIGN RATE TO DECIDE ON THE TRESHOLDS 
-pdf("human_tscp_mapping_rate")
+pdf("human_tscp_mapping_rate.pdf")
 ggplot(metadata, aes(x=rate_h)) + geom_histogram(color="blue", fill= "blue", bins=30)
 dev.off()
 
-pdf("mouse_tscp_mapping_rate")
+pdf("mouse_tscp_mapping_rate.pdf")
 ggplot(metadata, aes(x=rate_m)) + geom_histogram(color="orange", fill= "orange", bins=30)
 dev.off()
 
@@ -104,19 +113,19 @@ for (i in 1:nrow(metadata)){
 
 #cutoff#1 0.75 percent for both
 metadata2 <- metadata 
-metadata2$cell_specie <- rep(NA, nrow(metadata2))
-for (i in 1:nrow(metadata2)){
-  if (metadata2$rate_h[i] > 0.75){
-    metadata2$cell_species[i] <- "h"}
-  if else (metadata2$rate_m[i] > 0.75) {
-    metadat2a$cell_species[i] <- "m"
+metadata2$cell_species <- rep(NA, nrow(metadata2))
+for (i in 1:nrow(metadata2)) {
+  if (metadata2$rate_h[i] > 0.75) {
+    metadata2$cell_species[i] <- "h"
+  } else if (metadata2$rate_m[i] > 0.75) {
+    metadata2$cell_species[i] <- "m"
   } else {
     metadata2$cell_species[i] <- "0"
   }
 }
 
-subset_h2 <- metadata2[metadata2$cell_specie == "h",]
-subset_m2 <- metadata2[metadata2$cell_specie == "m",]
+subset_h2 <- metadata2[metadata2$cell_species == "h",]
+subset_m2 <- metadata2[metadata2$cell_species == "m",]
 
 print(paste('Number of huamn cells for cuttoff 0.75: ', nrow(subset_h2)))
 print(paste('Number of mouse cells for cuttoff 0.75: ', nrow(subset_m2)))
@@ -129,20 +138,18 @@ print(paste('Total number of cells: ', ((nrow(subset_h2) + nrow(subset_m2)))))
 
 #cutoff#2 0.6 for both 
 
-metadata3 <- metadata 
-metadata3$cell_specie <- rep(NA, nrow(metadata3))
-for (i in 1:nrow(metadata3)){
-  if (metadata3$rate_h[i] > 0.6){
-    metadata3$cell_species[i] <- "h"}
-  if else (metadata3$rate_m[i] > 0.6) {
+metadata3$cell_species <- rep(NA, nrow(metadata3))
+for (i in 1:nrow(metadata3)) {
+  if (metadata3$rate_h[i] > 0.6) {
+    metadata3$cell_species[i] <- "h"
+  } else if (metadata3$rate_m[i] > 0.6) {
     metadata3$cell_species[i] <- "m"
   } else {
     metadata3$cell_species[i] <- "0"
   }
 }
-
-subset_h3 <- metadata3[metadata3$cell_specie == "h",]
-subset_m3 <- metadata3[metadata3$cell_specie == "m",]
+subset_h3 <- metadata3[metadata3$cell_species == "h",]
+subset_m3 <- metadata3[metadata3$cell_species == "m",]
 
 print(paste('Number of huamn cells for cuttoff 0.6: ', nrow(subset_h3)))
 print(paste('Number of mouse cells for cuttoff 0.6: ', nrow(subset_m3)))
@@ -154,20 +161,20 @@ print(paste('Total number of cells: ', ((nrow(subset_h2) + nrow(subset_m3)))))
 [1] "Total number of cells:  69449"
 
 #cutoff#3 0.75 for human and 0.6 for mouse
-metadata5 <- metadata 
-metadata5$cell_specie <- rep(NA, nrow(metadata5))
-for (i in 1:nrow(metadata5)){
-  if (metadata5$rate_h[i] > 0.75){
-    metadata5$cell_species[i] <- "h"}
-  if else (metadata3$rate_m[i] > 0.6) {
+metadata5 <- metadata
+metadata5$cell_species <- rep(NA, nrow(metadata5))
+for (i in 1:nrow(metadata5)) {
+  if (metadata5$rate_h[i] > 0.75) {
+    metadata5$cell_species[i] <- "h"
+  } else if (metadata5$rate_m[i] > 0.6) {
     metadata5$cell_species[i] <- "m"
   } else {
     metadata5$cell_species[i] <- "0"
   }
 }
 
-subset_h5 <- metadata2[metadata5$cell_specie == "h",]
-subset_m5 <- metadata2[metadata5$cell_specie == "m",]
+subset_h5 <- metadata2[metadata5$cell_species == "h",]
+subset_m5 <- metadata2[metadata5$cell_species == "m",]
 
 print(paste('Number of huamn cells for cuttoff 0.75: ', nrow(subset_h5)))
 print(paste('Number of mouse cells for cuttoff 0.6: ', nrow(subset_m5)))
@@ -177,3 +184,47 @@ print(paste('Total number of cells: ', ((nrow(subset_h5) + nrow(subset_m5)))))
 [1] "Number of mouse cells for cuttoff 0.6:  15969"
 [1] "Cells lost:  1003"
 [1] "Total number of cells:  69449"
+
+
+
+#making the human and mosue metadatas adn counts matricies
+subset_h2$sample_name <- subset_h2$sample_name_H
+subset_m2$sample_name <- subset_m2$sample_name_M
+write.csv(subset_h2, "metadata_H.csv")
+write.csv(subset_m2, "metadata_M.csv")
+
+dim(subset_h2)
+#53480    33
+dim(subset_m2)
+#15068    33
+
+counts_H <- counts[, colnames(counts) %in% subset_h2$bc_wells]
+counts_M <- counts[, colnames(counts) %in% subset_m2$bc_wells]
+
+dim(counts_H)
+#119684  53480
+dim(counts_M)
+#119684  15068
+
+#save the counts matricies
+#this will nto stor the rownames and colnames 
+writeMM(counts_H, "counts_H.mtx")
+writeMM(counts_M, "counts_M.mtx")
+
+#save the col and rownames for both
+colnames_H <- colnames(counts_H)
+rownames_H <- rownames(counts_H)
+colnames_M <- colnames(counts_M)
+rownames_M <- rownames(counts_M)
+write.csv(colnames_H, "colnames_H.csv")
+write.csv(rownames_H, "rownames_H.csv")
+write.csv(colnames_M, "colnames_M.csv")
+write.csv(rownames_M, "rownames_M.csv")
+
+
+
+
+
+
+
+
