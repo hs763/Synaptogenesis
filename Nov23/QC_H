@@ -22,6 +22,8 @@ colnames(counts) <- colnames[,2]
 rownames <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/rownames_H.csv')
 rownames(counts) <- rownames[,2]
 metadata <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/metadata_H.csv')
+
+path2data   <- '/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sCell/combined/all-well/DGE_unfiltered'
 genes <- 
 lib.sizes <- colSums(counts)
 
