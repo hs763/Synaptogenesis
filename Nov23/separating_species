@@ -13,30 +13,22 @@ library(viridisLite)
 library(viridis)
 library(scDblFinder)
 
-path2data   <- '/data2/hanna/synaptogenesis/newvolume/analysis/combined_h/all-well/DGE_unfiltered'
-sample_info <- read.table('/data2/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab',
+#import data
+path2data   <- '/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sCell/combined/all-well/DGE_unfiltered'
+sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab',
   sep = "\t", header = TRUE)
 
 counts    <- t(readMM(paste0(path2data, "/DGE.mtx")))
 genes     <- read.csv(paste0(path2data, "/all_genes.csv"))
 metadata  <- read.csv(paste0(path2data, "/cell_metadata.csv"))
-rownames(counts) <- genes
+rownames(counts) <- genes$gene_id
 
 lib.sizes <- colSums(counts)
 ngenes    <- colSums(counts > 0)
 
+print(paste('Number of genes: ', nrow(counts)))
+print(paste('Number of cells: ', ncol(counts)))
 
-counts   <- counts[,ngenes > 400 & lib.sizes > 500]
-metadata <- metadata[ngenes > 400 & lib.sizes > 500,]
-lib.sizes <- colSums(counts)
-ngenes    <- colSums(counts > 0)
-
-#hist(ngenes/lib.sizes)
-
-counts   <- counts[,ngenes/lib.sizes < 0.9]
-metadata <- metadata[ngenes/lib.sizes < 0.9,]
-lib.sizes <- colSums(counts)
-ngenes    <- colSums(counts > 0)
 
 sample_bc1_well <- rep(NA, nrow(metadata))        
 sample_number   <- rep(NA, nrow(metadata))
@@ -63,11 +55,28 @@ for (i in 1:length(samples)){
 
 }
 
-submeta <- data.frame(rlist::list.rbind(strsplit(sample_name, split="_")))
-colnames(submeta) <- c("batch", "day", "replicate")
-submeta$day <- gsub("d","",submeta$day)
-
+head
 metadata <- data.frame(cbind(metadata, lib.sizes, sample_number, sample_bc1_well, sample_name, submeta))
+
+#runing initial QC
+print(paste('Number of cells with >400 expressed genes', ncol(counts[,ngenes > 400])))
+
+
+
+counts   <- counts[,ngenes > 400 & lib.sizes > 500]
+metadata <- metadata[ngenes > 400 & lib.sizes > 500,]
+lib.sizes <- colSums(counts)
+ngenes    <- colSums(counts > 0)
+
+#hist(ngenes/lib.sizes)
+
+counts   <- counts[,ngenes/lib.sizes < 0.9]
+metadata <- metadata[ngenes/lib.sizes < 0.9,]
+lib.sizes <- colSums(counts)
+ngenes    <- colSums(counts > 0)
+
+
+
 
 #finding the mapping rates
 metadata$rate_h <- metadata$hg38_tscp_count/metadata$tscp_count
