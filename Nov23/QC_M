@@ -1,1 +1,22 @@
+cd /data2/hanna/synaptogenesis/newvolume
+singularity shell --bind /data2:/mnt qc-cell.sif
+cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H
 
+library(scuttle)
+library(scran)
+library(irlba)
+library(Rtsne)
+library(Matrix)
+library(ggplot2)
+library(biomaRt)
+library(viridisLite)
+library(viridis)
+library(scDblFinder)
+
+#These count matricies have been filtered for ngenes > 400, lib.sizes > 500, and ngenes/lib.sizes < 0.9. Code in Nov2023/separating species. 
+#This initial QC was done to decrease the size of the data, according to the treshold we set with Ivan. 
+
+counts_M <- readMM('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/counts_M.mtx')
+meta_M <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/metadata_M.csv')
+sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab',
+  sep = "\t", header = TRUE)
