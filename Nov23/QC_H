@@ -17,12 +17,19 @@ library(scDblFinder)
 #These count matricies have been filtered for ngenes > 400, lib.sizes > 500, and ngenes/lib.sizes < 0.9. Code in Nov2023/separating species. 
 #This initial QC was done to decrease the size of the data, according to the treshold we set with Ivan. 
 counts <- readMM('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/counts_H.mtx')
+colnames <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/colnames_H.csv')
+colnames(counts) <- colnames[,2]
+rownames <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/rownames_H.csv')
+rownames(counts) <- rownames[,2]
 metadata <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/metadata_H.csv')
+genes <- rownames(counts)
+lib.sizes <- colSums(counts)
 
 #sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab', sep = "\t", header = TRUE)
 
 ##############checking the initial QC
 # Make a box-whisker plot for each sample
+pdf("UMI_numbers_pre.pdf")
 plot_df <- metadata
 ggplot(plot_df, aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
   geom_boxplot() +
@@ -30,17 +37,6 @@ ggplot(plot_df, aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
   labs(x = "Sample", y = "Number of UMIs") +
   scale_y_log10(breaks = c(100, 1000, 5000, 10000, 50000, 100000),
     labels = c("100","1,000", "5,000", "10,000", "50,000", "100,000"))
-
-# Plot number of expressed genes vs UMIs (drop/keep cutoff > 400) 
-outfile = paste(outdir, "cell_complexity.pdf", sep="/")
-pdf(outfile)
-qplot(lib.sizes, ngenes, col = ifelse(ngenes < 400, "drop", "keep")) +
-  scale_x_log10() +
-  scale_y_log10() +
-  theme_minimal() + 
-  theme(text = element_text(size=20),legend.position = "none")  +
-  labs(x = "UMI count", y = "Number of expressed genes") +
-  scale_color_manual(values = c("drop" = "grey50", "keep" = "black"), name = "")
 dev.off()
 
 # Get ENSEMBL annotations
@@ -52,15 +48,16 @@ gene_map  <- getBM(attributes=c("ensembl_gene_id", "hgnc_symbol", "chromosome_na
 
 # Remove cells with a higher than expected number of mitochondrial reads
 mt.index    <- gene_map$chromosome_name == "MT"
-mt.counts   <- counts[which(genes$gene_name %in% gene_map$hgnc_symbol[mt.index]), ]
+mt.counts   <- counts[which(genes %in% gene_map$hgnc_symbol[mt.index]), ]
 mt.fraction <- colSums(mt.counts)/lib.sizes
 mt.p   <- pnorm(mt.fraction, mean = median(mt.fraction), sd = mad(mt.fraction), lower.tail = FALSE)
 
 
 # Decide on FDR for this threshold
-#mt.lim <- min(mt.fraction[which(p.adjust(mt.p, method = "fdr") < 0.05)])
 mt.lim <- min(mt.fraction[which(p.adjust(mt.p, method = "fdr") < 0.001)])
 print(paste("MT filtering limit set to using statistical test:", mt.lim))
+[1] "MT filtering limit set to using statistical test: 0"
+
 
 metadata <- data.frame(cbind(metadata,mt.fraction))
 
