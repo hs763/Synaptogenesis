@@ -1,0 +1,48 @@
+cd /data2/hanna/synaptogenesis/newvolume
+singularity shell --bind /data2:/mnt qc-cell.sif
+cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H
+
+library(scuttle)
+library(scran)
+library(irlba)
+library(Rtsne)
+library(Matrix)
+library(ggplot2)
+library(biomaRt)
+library(viridisLite)
+library(viridis)
+library(scDblFinder)
+
+#These count matricies have been filtered for ngenes > 400, lib.sizes > 500, and ngenes/lib.sizes < 0.9. Code in Nov2023/separating species. 
+#This initial QC was done to decrease the size of the data, according to the treshold we set with Ivan. 
+counts_H <- readMM('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/counts_H.mtx')
+counts_M <- readMM('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/counts_M.mtx')
+
+meta_H <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/metadata_H.csv')
+meta_M <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/metadata_M.csv')
+
+sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab',
+  sep = "\t", header = TRUE)
+
+##############
+
+# Make a box-whisker plot for each sample
+plot_df <- metadata
+ggplot(plot_df, aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
+  geom_boxplot() +
+  theme_bw() +  coord_flip() +
+  labs(x = "Sample", y = "Number of UMIs") +
+  scale_y_log10(breaks = c(100, 1000, 5000, 10000, 50000, 100000),
+    labels = c("100","1,000", "5,000", "10,000", "50,000", "100,000"))
+
+# Plot number of expressed genes vs UMIs (drop/keep cutoff > 400) 
+outfile = paste(outdir, "cell_complexity.pdf", sep="/")
+pdf(outfile)
+qplot(lib.sizes, ngenes, col = ifelse(ngenes < 400, "drop", "keep")) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_minimal() + 
+  theme(text = element_text(size=20),legend.position = "none")  +
+  labs(x = "UMI count", y = "Number of expressed genes") +
+  scale_color_manual(values = c("drop" = "grey50", "keep" = "black"), name = "")
+dev.off()
