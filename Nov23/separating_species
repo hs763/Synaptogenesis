@@ -22,17 +22,36 @@ counts    <- t(readMM(paste0(path2data, "/DGE.mtx")))
 genes     <- read.csv(paste0(path2data, "/all_genes.csv"))
 metadata  <- read.csv(paste0(path2data, "/cell_metadata.csv"))
 rownames(counts) <- genes$gene_id
+colnames(counts) <- metadata$bc_wells
 
 lib.sizes <- colSums(counts)
 ngenes    <- colSums(counts > 0)
 
 print(paste('Number of genes: ', nrow(counts)))
 print(paste('Number of cells: ', ncol(counts)))
+#"Number of genes:  119684"
+#"Number of cells:  2660423"
 
+#Make sure that your columns and rows of the counts matrix are named.
+
+counts   <- counts[,ngenes > 400 & lib.sizes > 500]
+metadata <- metadata[ngenes > 400 & lib.sizes > 500,]
+lib.sizes <- colSums(counts)
+ngenes    <- colSums(counts > 0)
+
+outfile = paste("/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023", "cell_complexity.pdf", sep="/")
+pdf(outfile)
+hist(ngenes/lib.sizes)
+
+counts   <- counts[,ngenes/lib.sizes < 0.9]
+metadata <- metadata[ngenes/lib.sizes < 0.9,]
+lib.sizes <- colSums(counts)
+ngenes    <- colSums(counts > 0)
 
 sample_bc1_well <- rep(NA, nrow(metadata))        
 sample_number   <- rep(NA, nrow(metadata))
-sample_name    <- rep(NA, nrow(metadata))
+sample_name_H    <- rep(NA, nrow(metadata))
+sample_name_M    <- rep(NA, nrow(metadata))
 
 #editing sample info
 sample_info$H_day <- sample_info$H_Timepoint 
@@ -51,8 +70,8 @@ samples <- unique(sample_info$Sample_well)
 for (i in 1:length(samples)){
   sample_bc1_well[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))] <- sample_info$Sample_well[i]
   sample_number[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]   <- sample_info$Sample_Number[i]
-  sample_name[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]     <- sample_info$Sample_name_H[i]
-
+  sample_name_H[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]     <- sample_info$Sample_name_H[i]
+  sample_name_M[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]     <- sample_info$Sample_name_M[i]
 }
 
 head
@@ -60,23 +79,6 @@ metadata <- data.frame(cbind(metadata, lib.sizes, sample_number, sample_bc1_well
 
 #runing initial QC
 print(paste('Number of cells with >400 expressed genes', ncol(counts[,ngenes > 400])))
-
-
-
-counts   <- counts[,ngenes > 400 & lib.sizes > 500]
-metadata <- metadata[ngenes > 400 & lib.sizes > 500,]
-lib.sizes <- colSums(counts)
-ngenes    <- colSums(counts > 0)
-
-#hist(ngenes/lib.sizes)
-
-counts   <- counts[,ngenes/lib.sizes < 0.9]
-metadata <- metadata[ngenes/lib.sizes < 0.9,]
-lib.sizes <- colSums(counts)
-ngenes    <- colSums(counts > 0)
-
-
-
 
 #finding the mapping rates
 metadata$rate_h <- metadata$hg38_tscp_count/metadata$tscp_count
