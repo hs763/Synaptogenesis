@@ -24,7 +24,7 @@ rownames(counts) <- rownames[,2]
 metadata <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/metadata_H.csv')
 
 path2data   <- '/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sCell/combined/all-well/DGE_unfiltered'
-genes <- 
+genes     <- read.csv(paste0(path2data, "/all_genes.csv"))
 lib.sizes <- colSums(counts)
 
 #sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab', sep = "\t", header = TRUE)
@@ -50,7 +50,7 @@ gene_map  <- getBM(attributes=c("ensembl_gene_id", "hgnc_symbol", "chromosome_na
 
 # Remove cells with a higher than expected number of mitochondrial reads
 mt.index    <- gene_map$chromosome_name == "MT"
-mt.counts   <- counts[which(genes %in% gene_map$hgnc_symbol[mt.index]), ]
+mt.counts   <- counts[which(genes$gene_name %in% gene_map$hgnc_symbol[mt.index]), ]
 mt.fraction <- colSums(mt.counts)/lib.sizes
 mt.p   <- pnorm(mt.fraction, mean = median(mt.fraction), sd = mad(mt.fraction), lower.tail = FALSE)
 
