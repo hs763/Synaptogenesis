@@ -22,7 +22,7 @@ colnames(counts) <- colnames[,2]
 rownames <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/rownames_H.csv')
 rownames(counts) <- rownames[,2]
 metadata <- read.csv('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/metadata_H.csv')
-genes <- rownames(counts)
+genes <- 
 lib.sizes <- colSums(counts)
 
 #sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab', sep = "\t", header = TRUE)
