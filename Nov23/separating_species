@@ -39,6 +39,11 @@ metadata <- metadata[ngenes > 400 & lib.sizes > 500,]
 lib.sizes <- colSums(counts)
 ngenes    <- colSums(counts > 0)
 
+print(paste('Number of genes: ', nrow(counts)))
+print(paste('Number of cells: ', ncol(counts)))
+[1] "Number of genes:  119684"
+[1] "Number of cells:  70566"
+
 outfile = paste("/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023", "cell_complexity.pdf", sep="/")
 pdf(outfile)
 hist(ngenes/lib.sizes)
