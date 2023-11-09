@@ -64,6 +64,72 @@ print(paste("MT filtering limit set to using statistical test:", mt.lim))
 
 metadata <- data.frame(cbind(metadata,mt.fraction))
 
+
+#runign old code from https://github.com/hs763/Synaptogenesis/blob/main/scRNAseq/low_level_analysis_combined_h.R
+sce <- SingleCellExperiment(list(counts=counts[,mt.fraction < mt.lim]),colData=DataFrame(metadata[mt.fraction < mt.lim,]))
+rownames(sce) <- genes$gene_id
+
+rownames(genes) <- rownames(sce)
+rowData(sce) <- DataFrame(genes)
+
+colnames(sce) <- metadata$bc_wells[mt.fraction  < mt.lim]
+colData(sce)  <- DataFrame(metadata[mt.fraction < mt.lim,])
+
+lib.sizes <- colSums(counts(sce))
+sce_filt  <- sce[calculateAverage(sce)>0.05,]
+
+#Cluster similar cells based on their expression profiles, using either log-expression values or ranks.
+clusts <- as.numeric(quickCluster(sce_filt, method = "igraph", min.size = 100))
+min.clust <- min(table(clusts))/2
+new_sizes <- c(floor(min.clust/3), floor(min.clust/2), floor(min.clust))
+sce_filt <- computeSumFactors(sce_filt, clusters = clusts, sizes = new_sizes, max.cluster.size = 3000)
+
+
+pdf("sizefactors.pdf")
+ggplot(data = data.frame(X = lib.sizes, Y = sizeFactors(sce)), mapping = aes(x = X, y = Y)) +
+  geom_point() +
+  scale_x_log10(breaks = c(500, 2000, 5000, 10000, 30000), labels = c("5,00", "2,000", "5,000", "10,000", "30,000") ) +
+  scale_y_log10(breaks = c(0.2, 1, 5)) +
+  theme_minimal() +
+  theme(text = element_text(size=20))  +
+  labs(x = "Number of UMIs", y = "Size Factor")
+dev.off()
+
+ggplot(data.frame(colData(sce)), aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
+  geom_boxplot() +
+  theme_bw() +  coord_flip() +
+  labs(x = "Batch", y = "Number of UMIs") +
+  scale_y_log10(breaks = c(100, 1000, 5000, 10000, 50000, 100000),
+    labels = c("100","1,000", "5,000", "10,000", "50,000", "100,000"))
+ggsave("UMIsBySample_afterQC.pdf")
+
+#finshing up here
+saveRDS(sce, "sce.rds")
+saveRDS(sce_filt, "sce_filt.rds")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Plot mitochondrial threshold
 outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H', "mtreadfraction1.pdf", sep="/")
 pdf(outfile)
