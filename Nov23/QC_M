@@ -43,15 +43,15 @@ ggplot(plot_df, aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
 dev.off()
 
 # Get ENSEMBL annotations
-ensembl <- useEnsembl(biomart = "ensembl",  dataset = "hsapiens_gene_ensembl",mirror="useast")
+ensembl <- useEnsembl(biomart = "ensembl",  dataset = "mmusculus_gene_ensembl",mirror="useast")
 
-gene_map  <- getBM(attributes=c("ensembl_gene_id", "hgnc_symbol", "chromosome_name"),
-  filters = "hgnc_symbol", values = genes$gene_name, mart = ensembl)
+gene_map  <- getBM(attributes=c("ensembl_gene_id", "mgi_symbol", "chromosome_name"),
+  filters = "mgi_symbol", values = genes$gene_name, mart = ensembl)
 
 
 # Remove cells with a higher than expected number of mitochondrial reads
 mt.index    <- gene_map$chromosome_name == "MT"
-mt.counts   <- counts[which(genes$gene_name %in% gene_map$hgnc_symbol[mt.index]), ]
+mt.counts   <- counts[which(genes$gene_name %in% gene_map$mgi_symbol[mt.index]), ]
 mt.fraction <- colSums(mt.counts)/lib.sizes
 mt.p   <- pnorm(mt.fraction, mean = median(mt.fraction), sd = mad(mt.fraction), lower.tail = FALSE)
 
@@ -59,9 +59,7 @@ mt.p   <- pnorm(mt.fraction, mean = median(mt.fraction), sd = mad(mt.fraction), 
 # Decide on FDR for this threshold
 mt.lim <- min(mt.fraction[which(p.adjust(mt.p, method = "fdr") < 0.001)])
 print(paste("MT filtering limit set to using statistical test:", mt.lim))
-[1] "MT filtering limit set to using statistical test: 0.043859649122807"
-
-
+#"MT filtering limit set to using statistical test: 0.0543847722637661"
 
 metadata <- data.frame(cbind(metadata,mt.fraction))
 
@@ -77,16 +75,16 @@ qplot(lib.sizes, mt.fraction, col = ifelse(mt.fraction>mt.lim, "drop", "keep")) 
 dev.off()
 
 print(paste('Number of cells after applying MT threshold: ', ncol(counts[,mt.fraction < mt.lim])))
-#"Number of cells after applying MT threshold:  51386"
+#"Number of cells after applying MT threshold:  14905"
 dim(counts[,mt.fraction < mt.lim])
-#119684  51386
+#119684  14905
 
 #dim(counts[,mt.fraction < 0.2])
-#119684  53436
+#119684  15057
 print("Nevertheless, setting MT threshold to 0.2!")
 mt.lim <- 0.2
 print(paste('Number of cells after applying MT threshold: ', ncol(counts[,mt.fraction < mt.lim])))
-#"Number of cells after applying MT threshold:  53436"
+#"Number of cells after applying MT threshold:  15057"
 
 # Read data into Bioconductor package SingleCellExperiment
 tryCatch( 
