@@ -284,7 +284,74 @@ tryCatch(
     }
   )
 
+#Error in serialize(data, node$con, xdr = FALSE) : 
+  error writing to connection
+#Error in serialize(data, node$con, xdr = FALSE) : 
+  error writing to connection
+Caught an error!
+<simpleError in manager$availability[[as.character(result$node)]] <- TRUE: wrong args for environment subassignment>
+
 #saveRDS(sce,paste0(path2data,"sce.rds"))
 
+######## Generate output for sctour ########
+#scTour: a deep learning architecture for robust inference and accurate prediction of 
+#cellular dynamics
 
+
+
+
+tryCatch( 
+    expr = {
+      sctour_dir <- paste0('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H', "sctour", sep="/") 
+      if (!file.exists(sctour_dir)){
+        dir.create(sctour_dir)
+      } 
+      #setwd(sctour_dir)
+
+      outfile = paste(sctour_dir, "sce.rds", sep="/")
+      saveRDS(sce, outfile)
+
+      #setwd("/home/swingett/data1_wingett/Parse/post_pipeline_analysis/sctour")
+
+      #sce <- readRDS(paste0(path2data,"sce.rds"))
+      sce <- sce[,colData(sce)$doublet_class == "singlet"]
+
+      outfile = paste(sctour_dir, "raw_counts.mtx", sep="/")
+      writeMM(t(counts(sce)), outfile)
+      
+      outfile = paste(sctour_dir, "cells.txt", sep="/")
+      writeLines(colnames(sce), "cells.txt")
+      
+      outfile = paste(sctour_dir, "genes.txt", sep="/")
+      writeLines(rownames(sce), outfile)
+
+      meta <- cbind(cell=rownames(colData(sce)), colData(sce))
+      outfile = paste(sctour_dir, "metadata.tab", sep="/")
+      write.table(data.frame(meta), file=outfile, sep="\t", row.names=FALSE, quote=FALSE)
+
+      sce_filt <- sce[calculateAverage(sce)>0.01,]
+      sce_filt <- logNormCounts(sce_filt)
+
+      outfile = paste(sctour_dir, "norm_counts.mtx", sep="/")
+      writeMM(t(logcounts(sce_filt)), outfile, sep="\t")
+
+      outfile = paste(sctour_dir, "cells_norm.txt", sep="/")
+      writeLines(colnames(sce_filt), outfile)
+
+      outfile = paste(sctour_dir, "genes_norm.txt", sep="/")
+      writeLines(rowData(sce_filt)$gene_name, outfile)
+    },
+    error = function(e){ 
+      message('Caught an error!')
+      #print(e)
+    },
+    warning = function(w){
+      message('Caught an warning!')
+      #print(w)
+    }
+  )
+
+print("\n")
+Sys.sleep(1)
+print('Done')
 
