@@ -1,5 +1,5 @@
 cd /data2/hanna/synaptogenesis/newvolume
-singularity shell --bind /data2:/mnt qc-cell.sif
+singularity shell --bind /data2:/mnt qc_cell.sif
 cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023
 
 library(scuttle)
