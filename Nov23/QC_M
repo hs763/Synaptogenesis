@@ -27,12 +27,28 @@ path2data   <- '/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sCell/combined
 genes     <- read.csv(paste0(path2data, "/all_genes.csv"))
 lib.sizes <- colSums(counts)
 
-#sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab', sep = "\t", header = TRUE)
 
+
+
+dim(counts)
+print(paste('Number of genes: ', nrow(counts)))
+print(paste('Number of cells: ', ncol(counts)))
+
+# Make a box-whisker plot for each sample
+plot_df <- metadata
+ggplot(plot_df, aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
+  geom_boxplot() +
+  theme_bw() +  coord_flip() +
+  labs(x = "Sample", y = "Number of UMIs") +
+  scale_y_log10(breaks = c(100, 1000, 5000, 10000, 50000, 100000),
+    labels = c("100","1,000", "5,000", "10,000", "50,000", "100,000"))
+
+outfile = paste(outdir, "UMIsBySample_beforeQC_H.pdf", sep="/")
+ggsave(outfile)
 
 
 # Make a box-whisker plot for each sample
-pdf("UMI_numbers_pre.pdf")
+pdf("UMIsBySample_beforeQC.pdf")
 plot_df <- metadata
 ggplot(plot_df, aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
   geom_boxplot() +
@@ -42,12 +58,12 @@ ggplot(plot_df, aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
     labels = c("100","1,000", "5,000", "10,000", "50,000", "100,000"))
 dev.off()
 
+
 # Get ENSEMBL annotations
 ensembl <- useEnsembl(biomart = "ensembl",  dataset = "mmusculus_gene_ensembl",mirror="useast")
 
 gene_map  <- getBM(attributes=c("ensembl_gene_id", "mgi_symbol", "chromosome_name"),
   filters = "mgi_symbol", values = genes$gene_name, mart = ensembl)
-
 
 # Remove cells with a higher than expected number of mitochondrial reads
 mt.index    <- gene_map$chromosome_name == "MT"
@@ -59,13 +75,15 @@ mt.p   <- pnorm(mt.fraction, mean = median(mt.fraction), sd = mad(mt.fraction), 
 # Decide on FDR for this threshold
 mt.lim <- min(mt.fraction[which(p.adjust(mt.p, method = "fdr") < 0.001)])
 print(paste("MT filtering limit set to using statistical test:", mt.lim))
-#"MT filtering limit set to using statistical test: 0.0543847722637661"
+[1] "MT filtering limit set to using statistical test: 0.043859649122807"
 
 metadata <- data.frame(cbind(metadata,mt.fraction))
 
-# Plot mitochondrial threshold
-outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "mtreadfraction1.pdf", sep="/")
-pdf(outfile)
+print(paste('Number of cells after applying MT threshold: ', ncol(counts[,mt.fraction < mt.lim])))
+#[1] "Number of cells after applying MT threshold:  51388"
+
+#Plot mitochondrial treshold 
+pdf("mtreadfraction.pdf")
 qplot(lib.sizes, mt.fraction, col = ifelse(mt.fraction>mt.lim, "drop", "keep")) +
   scale_x_log10() +
   labs(x = "UMI count", y = "MT read fraction") +
@@ -74,17 +92,9 @@ qplot(lib.sizes, mt.fraction, col = ifelse(mt.fraction>mt.lim, "drop", "keep")) 
   scale_color_manual(values = c("drop" = "grey50", "keep" = "black"), name = "")
 dev.off()
 
+mtlim <- 0.2
 print(paste('Number of cells after applying MT threshold: ', ncol(counts[,mt.fraction < mt.lim])))
-#"Number of cells after applying MT threshold:  14905"
-dim(counts[,mt.fraction < mt.lim])
-#119684  14905
-
-#dim(counts[,mt.fraction < 0.2])
-#119684  15057
-print("Nevertheless, setting MT threshold to 0.2!")
-mt.lim <- 0.2
-print(paste('Number of cells after applying MT threshold: ', ncol(counts[,mt.fraction < mt.lim])))
-#"Number of cells after applying MT threshold:  15057"
+#[1] "Number of cells after applying MT threshold:  53436"
 
 # Read data into Bioconductor package SingleCellExperiment
 tryCatch( 
@@ -111,8 +121,7 @@ tryCatch(
     sizeFactors(sce) <- sizeFactors(sce_filt)
 
     # Create Size Factors plot
-    outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "sizefactors.pdf", sep="/")
-    pdf(outfile)
+    pdf("sizefactors.pdf")
     ggplot(data = data.frame(X = lib.sizes, Y = sizeFactors(sce)), mapping = aes(x = X, y = Y)) +
       geom_point() +
       scale_x_log10(breaks = c(500, 2000, 5000, 10000, 30000), labels = c("5,00", "2,000", "5,000", "10,000", "30,000") ) +
@@ -132,46 +141,30 @@ tryCatch(
   }
 )
 
-#Caught an warning!
-#<simpleWarning in (function (x, sizes, min.mean = NULL, positive = FALSE, scaling = NULL) {    if (is_sparse(x)) {        x <- as(x, "dgCMatrix")    }    else {        x <- as.matrix(x)    }    if (is.null(scaling)) {        scaling <- colSums(x)    }    if (any(scaling == 0)) {        stop("cells should have non-zero library sizes or 'scaling' values")    }    exprs <- normalizeCounts(x, size.factors = scaling, center.size.factors = FALSE,         log = FALSE)    ave.cell <- rowMeans(exprs) * mean(scaling)    high.ave <- min.mean <= ave.cell    use.ave.cell <- ave.cell    if (!all(high.ave)) {        exprs <- exprs[high.ave, , drop = FALSE]        use.ave.cell <- use.ave.cell[high.ave]    }    sphere <- .generateSphere(scaling)    sizes <- sizes[sizes <= ncol(exprs)]    new.sys <- .create_linear_system(exprs, use.ave.cell, sphere,         sizes)    design <- new.sys$design    output <- new.sys$output    QR <- qr(design)    final.nf <- qr.coef(QR, output)    final.nf <- final.nf * scaling    if (any(final.nf <= 0)) {        warning("encountered non-positive size factor estimates")        if (positive) {            num.detected <- colSums(exprs > 0)            final.nf <- cleanSizeFactors(final.nf, num.detected)        }    }    list(final.nf = final.nf, ave.cell = ave.cell)})(x = dots[[1L]][[1L]], scaling = dots[[2L]][[1L]], sizes = c(17L, 26L, 53L), min.mean = 0.1, positive = TRUE): encountered non-positive size factor estimates>
-
-
-
 library(tidyverse)
 library(BiocParallel)
 
-
-tryCatch( 
-    expr = {
-      # Find doublets
-      bp <- MulticoreParam(25, RNGseed=1234)
+bp <- MulticoreParam(25, RNGseed=1234)
       bpstart(bp)
       sce <- scDblFinder(sce, samples="bc1_well", dbr=.05, dims=30, BPPARAM=bp)
       bpstop(bp)
       table(sce$scDblFinder.class)
-      #singlet doublet 
-      #  39090    2486 
+#singlet doublet 
+#  48382    5054 
 
-      bpstart(bp)
-      sce_test <- scDblFinder(sce, samples="bc1_well", dims=30, BPPARAM=bp)
-      bpstop(bp)
-      table(sce_test$scDblFinder.class)
-      #singlet doublet 
-      #  40063    1513
-
-      sce_filt <- sce[calculateAverage(sce)>0.01,]
+sce_filt <- sce[calculateAverage(sce)>0.01,]
       sce_filt <- logNormCounts(sce_filt)
 
-      decomp  <- modelGeneVar(sce_filt)
-      hvgs    <- rownames(decomp)[decomp$FDR < 0.1]
-      #length(hvgs)
-      #[1] 625
-      pca     <- prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
-      rownames(pca$x) <- colnames(sce_filt)
-      tsne <- Rtsne(pca$x, pca = FALSE, check_duplicates = FALSE, num_threads=30)
-      layout  <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=30, min_dist=.25)
+decomp  <- modelGeneVar(sce_filt)
+hvgs    <- rownames(decomp)[decomp$FDR < 0.1]
+length(hvgs)
+#3467
+pca     <- prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
+rownames(pca$x) <- colnames(sce_filt)
+tsne <- Rtsne(pca$x, pca = FALSE, check_duplicates = FALSE, num_threads=30)
+layout  <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=30, min_dist=.25)
 
-      df_plot <- data.frame(
+ df_plot <- data.frame(
       colData(sce),
       doublet  = colData(sce)$scDblFinder.class,
       tSNE1    = tsne$Y[, 1],
@@ -180,7 +173,7 @@ tryCatch(
       UMAP2 = layout$layout[,2] 
       )
 
-      # Plot doublets on tsne plot
+# Plot doublets on tsne plot
       plot.index <- order(df_plot$doublet)
       ggplot(df_plot[plot.index,], aes(x = tSNE1, y = tSNE2, col = factor(doublet))) +
         geom_point(size = 0.4) +
@@ -190,11 +183,10 @@ tryCatch(
         theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
         theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
         guides(colour = guide_legend(override.aes = list(size=7)))
-      
-      outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "tsne_doublets.pdf", sep="/")
-      ggsave(outfile)
+    
+      ggsave( "tsne_doublets.pdf")
 
-      # Plot doublets on UMAP
+# Plot doublets on UMAP
       ggplot(df_plot[plot.index,], aes(x = UMAP1, y = UMAP2, col = factor(doublet))) +
         geom_point(size = 0.4) +
         scale_color_manual(values=c("gray","#0169c1"), name = "") +
@@ -203,25 +195,23 @@ tryCatch(
         theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
         theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
         guides(colour = guide_legend(override.aes = list(size=7)))
-      
-      outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "umap_doublets.pdf", sep="/")
-      ggsave(outfile)
 
-      # Plot box-whisket plot of number of reads in singlet / doublet cells
+        ggsave("umap_doublets.pdf")
+
+
+# Plot box-whisket plot of number of reads in singlet / doublet cells
       ggplot(df_plot, aes(x=doublet, y=log10(lib.sizes))) + 
         geom_boxplot() +
         labs(x = "", y = "log10(Library size)") 
 
-      outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "boxplot_doublets.pdf", sep="/")
-      ggsave(outfile)
+      ggsave("boxplot_doublets.pdf")
 
-      doublet_score <- colData(sce)$scDblFinder.score
-      doublet_class <- colData(sce)$scDblFinder.class
-
-      sce_qc <- sce[,colData(sce)$scDblFinder.class == "singlet"]
+doublet_score <- colData(sce)$scDblFinder.score
+doublet_class <- colData(sce)$scDblFinder.class
+sce_qc <- sce[,colData(sce)$scDblFinder.class == "singlet"]
 
 
-      # Plot UMIs by sample after QC filtering
+ # Plot UMIs by sample after QC filtering
       ggplot(data.frame(colData(sce_qc)), aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
         geom_boxplot() +
         theme_bw() +  coord_flip() +
@@ -229,14 +219,12 @@ tryCatch(
         scale_y_log10(breaks = c(100, 1000, 5000, 10000, 50000, 100000),
           labels = c("100","1,000", "5,000", "10,000", "50,000", "100,000"))
 
-      outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "UMIsBySample_afterQC.pdf", sep="/")
-      ggsave(outfile)
+      ggsave("UMIsBySample_afterQC.pdf")
 
-      # Plot UMI density for each sample after QC filtering
-      outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "UMIsDensityBySample_afterQC.pdf", sep="/")
-      pdf(outfile, width=12)
+# Plot UMI density for each sample after QC filtering
+     pdf("UMIsDensityBySample_afterQC.pdf", width=12)
 
-      data.frame(colData(sce_qc)) %>% 
+    data.frame(colData(sce_qc)) %>% 
           ggplot(aes(color=sample_name, x=lib.sizes, fill= sample_name)) + 
           geom_density(alpha = 0.2) + 
           scale_x_log10() + 
@@ -245,116 +233,49 @@ tryCatch(
           geom_vline(xintercept = 400)
       dev.off()
 
-      # Barchart of the number of cells for each sample after QC
+# Barchart of the number of cells for each sample after QC
       ggplot(data.frame(colData(sce_qc)), aes (x = factor(sample_name))) +
         geom_bar() +
         theme_bw() +  coord_flip() +
         labs(x = "Sample", y = "Number of Cells") 
-      
-      outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "CellsBySample_afterQC.pdf", sep="/")
-      ggsave(outfile)
 
-      # Barchart of the number of cells for each condition after QC (maybe just 1 condition?)
-      ggplot(data.frame(colData(sce_qc)), aes (x = factor(condition))) +
-        geom_bar() +
-        theme_bw() +  coord_flip() +
-        labs(x = "Condition", y = "Number of Cells") 
+      ggsave("CellsBySample_afterQC.pdf")
 
-      outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "CellsByCondition_afterQC.pdf", sep="/")
-      ggsave(outfile)
 
-      table(colData(sce_qc)$condition)   # Print nothing out if no condition?
-      #CTRL_45 CTRL_55 CTRL_70 DISS_48 DISS_55 DISS_70  EMB_55 
-      #   7746    7742    2174    1528    9439    7741    5206
+colData(sce) <- colData(sce)[,-grep("scDblFinder",colnames(colData(sce)))]
+colData(sce)$doublet_score <- doublet_score
+colData(sce)$doublet_class <- doublet_class
 
-      colData(sce) <- colData(sce)[,-grep("scDblFinder",colnames(colData(sce)))]
-
-      colData(sce)$doublet_score <- doublet_score
-      colData(sce)$doublet_class <- doublet_class
-
-      # Plot the histogram of doublet score
-      outfile = paste('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "histogram_of_doublet_score.pdf", sep="/")
-      pdf(outfile)
+# Plot the histogram of doublet score
+      pdf("histogram_of_doublet_score.pdf")
       hist(doublet_score)
       dev.off()
-    },
-    error = function(e){ 
-      message('Caught an error!')
-      print(e)
-    },
-    warning = function(w){
-      message('Caught an warning!')
-      print(w)
-    }
-  )
 
-#Error in serialize(data, node$con, xdr = FALSE) : 
-  error writing to connection
-#Error in serialize(data, node$con, xdr = FALSE) : 
-  error writing to connection
-Caught an error!
-<simpleError in manager$availability[[as.character(result$node)]] <- TRUE: wrong args for environment subassignment>
+saveRDS(sce, "sce.rds")
 
-#saveRDS(sce,paste0(path2data,"sce.rds"))
+setwd("sctour_dir")
 
-######## Generate output for sctour ########
-#scTour: a deep learning architecture for robust inference and accurate prediction of 
-#cellular dynamics
+sce <- sce[,colData(sce)$doublet_class == "singlet"]
 
-
-
-
-tryCatch( 
-    expr = {
-      sctour_dir <- paste0('/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M', "sctour", sep="/") 
-      if (!file.exists(sctour_dir)){
-        dir.create(sctour_dir)
-      } 
-      #setwd(sctour_dir)
-
-      outfile = paste(sctour_dir, "sce.rds", sep="/")
-      saveRDS(sce, outfile)
-
-      #setwd("/home/swingett/data1_wingett/Parse/post_pipeline_analysis/sctour")
-
-      #sce <- readRDS(paste0(path2data,"sce.rds"))
-      sce <- sce[,colData(sce)$doublet_class == "singlet"]
-
-      outfile = paste(sctour_dir, "raw_counts.mtx", sep="/")
-      writeMM(t(counts(sce)), outfile)
+      writeMM(t(counts(sce)), "raw_counts.mtx")
       
-      outfile = paste(sctour_dir, "cells.txt", sep="/")
       writeLines(colnames(sce), "cells.txt")
-      
-      outfile = paste(sctour_dir, "genes.txt", sep="/")
-      writeLines(rownames(sce), outfile)
+
+      writeLines(rownames(sce), "genes.txt")
 
       meta <- cbind(cell=rownames(colData(sce)), colData(sce))
-      outfile = paste(sctour_dir, "metadata.tab", sep="/")
-      write.table(data.frame(meta), file=outfile, sep="\t", row.names=FALSE, quote=FALSE)
+      write.table(data.frame(meta), file="metadata.tab", sep="\t", row.names=FALSE, quote=FALSE)
 
       sce_filt <- sce[calculateAverage(sce)>0.01,]
       sce_filt <- logNormCounts(sce_filt)
 
-      outfile = paste(sctour_dir, "norm_counts.mtx", sep="/")
-      writeMM(t(logcounts(sce_filt)), outfile, sep="\t")
+      writeMM(t(logcounts(sce_filt)), "norm_counts.mtx", sep="\t")
 
-      outfile = paste(sctour_dir, "cells_norm.txt", sep="/")
-      writeLines(colnames(sce_filt), outfile)
+      writeLines(colnames(sce_filt), "cells_norm.txt")
 
-      outfile = paste(sctour_dir, "genes_norm.txt", sep="/")
-      writeLines(rowData(sce_filt)$gene_name, outfile)
-    },
-    error = function(e){ 
-      message('Caught an error!')
-      #print(e)
-    },
-    warning = function(w){
-      message('Caught an warning!')
-      #print(w)
-    }
-  )
+      writeLines(rowData(sce_filt)$gene_name, "genes_norm.txt")
 
-print("\n")
-Sys.sleep(1)
-print('Done')
+
+
+
+
