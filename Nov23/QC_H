@@ -30,8 +30,7 @@ path2data   <- '/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sCell/combined
 genes     <- read.csv(paste0(path2data, "/all_genes.csv"))
 lib.sizes <- colSums(counts)
 
-#dim(counts)
-#[1] 62704 1303455
+dim(counts)
 print(paste('Number of genes: ', nrow(counts)))
 print(paste('Number of cells: ', ncol(counts)))
 
