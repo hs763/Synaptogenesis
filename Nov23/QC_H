@@ -279,6 +279,18 @@ sce <- sce[,colData(sce)$doublet_class == "singlet"]
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 ###############playing with UMAP##################
 #As n_neighbors increases, UMAP connects more and more neighboring points when constructing the 
 #graph representation of the high-dimensional data, which leads to a projection that more accurately 
