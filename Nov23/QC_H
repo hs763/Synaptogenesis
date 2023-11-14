@@ -162,15 +162,15 @@ length(hvgs)
 pca     <- prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
 rownames(pca$x) <- colnames(sce_filt)
 tsne <- Rtsne(pca$x, pca = FALSE, check_duplicates = FALSE, num_threads=30)
-layout  <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=30, min_dist=.25)
+umap  <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=30, min_dist=.25)
 
  df_plot <- data.frame(
       colData(sce),
       doublet  = colData(sce)$scDblFinder.class,
       tSNE1    = tsne$Y[, 1],
       tSNE2    = tsne$Y[, 2], 
-      UMAP1 = layout$layout[,1],
-      UMAP2 = layout$layout[,2] 
+      UMAP1 = umap$layout[,1],
+      UMAP2 = umap$layout[,2] 
       )
 
 # Plot doublets on tsne plot
@@ -277,3 +277,179 @@ sce <- sce[,colData(sce)$doublet_class == "singlet"]
 
 
 
+
+
+###############playing with UMAP##################
+#As n_neighbors increases, UMAP connects more and more neighboring points when constructing the 
+#graph representation of the high-dimensional data, which leads to a projection that more accurately 
+#reflects the global structure of the data. At very low values, any notion of global structure is almost 
+#completely lost. As the min_dist parameter increases, UMAP tends to "spread out" the projected points, 
+#leading to decreased clustering of the data and less emphasis on global structure.
+
+library(scran)
+library(irlba)
+library(Rtsne)
+library(Matrix)
+library(ggplot2)
+library(biomaRt)
+library(viridis)
+library(scDblFinder)
+library(umap)
+library(reticulate)
+library(rlist)
+
+umap = import('umap')  
+
+library(tidyverse)
+library(BiocParallel)
+
+sce <- readRDS("sce.rds")
+
+#n_n=30 m_d=0.5
+sce_filt <- sce[calculateAverage(sce)>0.01,]
+      sce_filt <- logNormCounts(sce_filt)
+
+decomp  <- modelGeneVar(sce_filt)
+hvgs    <- rownames(decomp)[decomp$FDR < 0.1]
+length(hvgs)
+#3467
+pca1     <- prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
+rownames(pca1$x) <- colnames(sce_filt)
+umap1  <- umap(pca1$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=10, min_dist=.5)
+
+ df_plot1 <- data.frame(
+      colData(sce),
+      doublet  = as.vector(colData(sce)$doublet_class),
+      UMAP1 = umap1$layout[,1],
+      UMAP2 = umap1$layout[,2] 
+      )
+
+ggplot(df_plot1, aes(x = UMAP1, y = UMAP2, col = factor(doublet))) +
+        geom_point(size = 0.4) +
+        scale_color_manual(values=c("gray","#0169c1"), name = "") +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+
+#n_n=30 m_d=0.75
+pca2     <- prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
+rownames(pca2$x) <- colnames(sce_filt)
+umap2  <- umap(pca2$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=30, min_dist=.75)
+
+ df_plot2 <- data.frame(
+      colData(sce),
+      doublet  = as.vector(colData(sce)$doublet_class), 
+      UMAP1 = umap2$layout[,1],
+      UMAP2 = umap2$layout[,2] 
+      )
+
+ggplot(df_plot2, aes(x = UMAP1, y = UMAP2, col = factor(doublet))) +
+        geom_point(size = 0.4) +
+        scale_color_manual(values=c("gray","#0169c1"), name = "") +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+#n_n=20 m_d=0.5
+pca3     <- prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
+rownames(pca3$x) <- colnames(sce_filt)
+umap3  <- umap(pca3$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=20, min_dist=.5)
+
+ df_plot3 <- data.frame(
+      colData(sce),
+      doublet  = as.vector(colData(sce)$doublet_class), 
+      UMAP1 = umap3$layout[,1],
+      UMAP2 = umap3$layout[,2] 
+      )
+
+ggplot(df_plot3, aes(x = UMAP1, y = UMAP2, col = factor(doublet))) +
+        geom_point(size = 0.4) +
+        scale_color_manual(values=c("gray","#0169c1"), name = "") +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+#n_n=10 m_d=0.5
+umap4  <- umap(pca3$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=10, min_dist=.5)
+
+ df_plot4 <- data.frame(
+      colData(sce),
+      doublet  = as.vector(colData(sce)$doublet_class), 
+      UMAP1 = umap4$layout[,1],
+      UMAP2 = umap4$layout[,2] 
+      )
+
+ggplot(df_plot4, aes(x = UMAP1, y = UMAP2, col = factor(doublet))) +
+        geom_point(size = 0.4) +
+        scale_color_manual(values=c("gray","#0169c1"), name = "") +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+#n_n=15 m_d=0.5
+umap5 <- umap(pca3$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=15, min_dist=.5)
+
+ df_plot5 <- data.frame(
+      colData(sce),
+      doublet  = as.vector(colData(sce)$doublet_class), 
+      UMAP1 = umap5$layout[,1],
+      UMAP2 = umap5$layout[,2] 
+      )
+
+ggplot(df_plot5, aes(x = UMAP1, y = UMAP2, col = factor(doublet))) +
+        geom_point(size = 0.4) +
+        scale_color_manual(values=c("gray","#0169c1"), name = "") +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+#n_n=15 m_d=0.1 - coloured by samples
+umap6 <- umap(pca1$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=15, min_dist=.1)
+
+ df_plot6 <- data.frame(
+      colData(sce),
+      name  = as.vector(colData(sce)$sample_name_H), 
+      UMAP1 = umap6$layout[,1],
+      UMAP2 = umap6$layout[,2] 
+      )
+
+#plotting different timepoitns
+ggplot(df_plot6, aes(x = UMAP1, y = UMAP2, color = factor(name))) +
+        geom_point(size = 0.4) +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+#n_n=10 m_d=0.5 coloured by samoke 
+umap6 <- umap(pca1$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=10, min_dist=.5)
+
+ df_plot6 <- data.frame(
+      colData(sce),
+      name  = as.vector(colData(sce)$sample_name_H), 
+      UMAP1 = umap6$layout[,1],
+      UMAP2 = umap6$layout[,2] 
+      )
+
+#plotting different timepoitns
+ggplot(df_plot6, aes(x = UMAP1, y = UMAP2, color = factor(name))) +
+        geom_point(size = 0.4) +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+  
