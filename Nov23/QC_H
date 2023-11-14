@@ -617,3 +617,39 @@ ggplot(df_plot, aes(x = UMAP1, y = UMAP2, color = factor(name))) +
         theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
         guides(colour = guide_legend(override.aes = list(size=7)))
 dev.off()
+
+
+
+
+#runign decont()
+library(scran)
+library(celda)
+library(irlba)
+library(scater)
+library(Matrix)
+library(ggplot2)
+library(biomaRt)
+library(viridis)
+
+library(umap)
+library(leiden)
+library(reticulate)
+
+markers   <- readLines("/data1/ivanir/Ilaria2023/ParseBS/newvolume/analysis/sCell/combined/all-well/DGE_unfiltered/geneMarkers.txt")
+sce <- logNormCounts(sce)
+
+sce_hvgs <- sce[calculateAverage(sce)>0.01,]
+rownames(sce_hvgs) <- rowData(sce_hvgs)$gene_name
+decomp   <- modelGeneVar(sce_hvgs)
+hvgs     <- rownames(decomp)[decomp$FDR < 0.01]
+markers  <- intersect(markers, rownames(sce_hvgs))
+hvgs     <- union(hvgs, markers)
+pca      <- prcomp_irlba(t(logcounts(sce_hvgs[hvgs,])), n = 30)
+rownames(pca$x) <- colnames(sce_hvgs)
+
+graph <- buildSNNGraph(pca$x, d = NA, transposed = TRUE)
+set.seed(42)
+clusters <- leiden(graph, resolution_parameter = 2)
+names(clusters) <-  colData(sce_hvgs)$cell
+
+
