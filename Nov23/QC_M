@@ -258,5 +258,103 @@ sce <- sce[,colData(sce)$doublet_class == "singlet"]
 
 
 
+###############playing with UMAP##################
+#As n_neighbors increases, UMAP connects more and more neighboring points when constructing the 
+#graph representation of the high-dimensional data, which leads to a projection that more accurately 
+#reflects the global structure of the data. At very low values, any notion of global structure is almost 
+#completely lost. As the min_dist parameter increases, UMAP tends to "spread out" the projected points, 
+#leading to decreased clustering of the data and less emphasis on global structure.
+
+library(scran)
+library(irlba)
+library(Rtsne)
+library(Matrix)
+library(ggplot2)
+library(biomaRt)
+library(viridis)
+library(scDblFinder)
+library(umap)
+library(reticulate)
+library(rlist)
+
+umap = import('umap')  
+
+library(tidyverse)
+library(BiocParallel)
+
+sce <- readRDS("sce.rds")
+sce_filt <- sce[calculateAverage(sce)>0.01,]
+      sce_filt <- logNormCounts(sce_filt)
+
+decomp  <- modelGeneVar(sce_filt)
+hvgs    <- rownames(decomp)[decomp$FDR < 0.1]
+length(hvgs)
+pca    <- prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
+rownames(pca$x) <- colnames(sce_filt)
+
+#n_n=30 m_d=0.25 - coloured by samples
+umap <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=30, min_dist=.25)
+
+ df_plot <- data.frame(
+      colData(sce),
+      name  = as.vector(colData(sce)$sample_name), 
+      UMAP1 = umap$layout[,1],
+      UMAP2 = umap$layout[,2] 
+      )
+
+#plotting different timepoitns
+ggplot(df_plot, aes(x = UMAP1, y = UMAP2, color = factor(name))) +
+        geom_point(size = 0.4) +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+#n_n=15 m_d=0.1 - coloured by samples
+umap <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=15, min_dist=.1)
+
+ df_plot <- data.frame(
+      colData(sce),
+      name  = as.vector(colData(sce)$sample_name), 
+      UMAP1 = umap$layout[,1],
+      UMAP2 = umap$layout[,2] 
+      )
+
+#plotting different timepoitns
+ggplot(df_plot, aes(x = UMAP1, y = UMAP2, color = factor(name))) +
+        geom_point(size = 0.4) +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+#n_n=10 m_d=0.5 coloured by samoke 
+umap <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=10, min_dist=.5)
+
+ df_plot <- data.frame(
+      colData(sce),
+      name  = as.vector(colData(sce)$sample_name), 
+      UMAP1 = umap$layout[,1],
+      UMAP2 = umap$layout[,2] 
+      )
+
+#plotting different timepoitns
+ggplot(df_plot, aes(x = UMAP1, y = UMAP2, color = factor(name))) +
+        geom_point(size = 0.4) +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+
+
+
+
+
+
+
 
 
