@@ -578,11 +578,26 @@ sce_filt <- sce[calculateAverage(sce)>0.01,]
       sce_filt <- logNormCounts(sce_filt)
 
 decomp  <- modelGeneVar(sce_filt)
-hvgs    <- rownames(decomp)[decomp$FDR < 0.1]
+#hvgs    <- rownames(decomp)[decomp$FDR < 0.1]
+length(rownames(decomp)[decomp$FDR < 0.001])
+#2341
+hvgs <- rownames(decomp)[decomp$FDR < 0.001]
 length(hvgs)
-#3757
+#2341
 pca     <- prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
 rownames(pca$x) <- colnames(sce_filt)
+variance_explained <- pca$sdev^2 / sum(pca$sdev^2) * 100
+variance_explained[1:20]
+#for rownames(decomp)[decomp$FDR < 0.0001
+# [1] 23.097227 15.237058  6.224804  5.425449  4.172582  3.318754  3.007631
+# [8]  2.716067  2.258120  2.146985  2.107405  1.943235  1.938273  1.869981
+#[15]  1.826330  1.753826  1.733034  1.672713  1.656222  1.637829
+
+#for rownames(decomp)[decomp$FDR < 0.001
+# [1] 23.358334 14.770147  7.477488  5.641224  4.375063  3.927237  3.409609
+# [8]  2.688625  2.252601  2.020690  1.968734  1.883787  1.810071  1.751002
+# [15]  1.685264  1.607796  1.562401  1.498481  1.484395  1.463901
+
 umap <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=15, min_dist=.1)
 
 df_plot <- data.frame(
