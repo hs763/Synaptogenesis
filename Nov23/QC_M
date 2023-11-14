@@ -11,8 +11,12 @@ library(Matrix)
 library(ggplot2)
 library(biomaRt)
 library(viridisLite)
-library(viridis)
 library(scDblFinder)
+library(umap)
+library(reticulate)
+library(rlist)
+
+umap = import('umap')
 
 #These count matricies have been filtered for ngenes > 400, lib.sizes > 500, and ngenes/lib.sizes < 0.9. Code in Nov2023/separating species. 
 #This initial QC was done to decrease the size of the data, according to the treshold we set with Ivan. 
@@ -27,25 +31,12 @@ path2data   <- '/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sCell/combined
 genes     <- read.csv(paste0(path2data, "/all_genes.csv"))
 lib.sizes <- colSums(counts)
 
-
-
-
 dim(counts)
 print(paste('Number of genes: ', nrow(counts)))
 print(paste('Number of cells: ', ncol(counts)))
-
-# Make a box-whisker plot for each sample
-plot_df <- metadata
-ggplot(plot_df, aes (x = factor(sample_name), y = as.numeric(lib.sizes))) +
-  geom_boxplot() +
-  theme_bw() +  coord_flip() +
-  labs(x = "Sample", y = "Number of UMIs") +
-  scale_y_log10(breaks = c(100, 1000, 5000, 10000, 50000, 100000),
-    labels = c("100","1,000", "5,000", "10,000", "50,000", "100,000"))
-
-outfile = paste(outdir, "UMIsBySample_beforeQC_H.pdf", sep="/")
-ggsave(outfile)
-
+#119684  15068
+#"Number of genes:  119684"
+#"Number of cells:  15068"
 
 # Make a box-whisker plot for each sample
 pdf("UMIsBySample_beforeQC.pdf")
@@ -75,12 +66,12 @@ mt.p   <- pnorm(mt.fraction, mean = median(mt.fraction), sd = mad(mt.fraction), 
 # Decide on FDR for this threshold
 mt.lim <- min(mt.fraction[which(p.adjust(mt.p, method = "fdr") < 0.001)])
 print(paste("MT filtering limit set to using statistical test:", mt.lim))
-[1] "MT filtering limit set to using statistical test: 0.043859649122807"
+#"MT filtering limit set to using statistical test: 0.0543847722637661"
 
 metadata <- data.frame(cbind(metadata,mt.fraction))
 
 print(paste('Number of cells after applying MT threshold: ', ncol(counts[,mt.fraction < mt.lim])))
-#[1] "Number of cells after applying MT threshold:  51388"
+#"Number of cells after applying MT threshold:  14905"
 
 #Plot mitochondrial treshold 
 pdf("mtreadfraction.pdf")
@@ -92,13 +83,11 @@ qplot(lib.sizes, mt.fraction, col = ifelse(mt.fraction>mt.lim, "drop", "keep")) 
   scale_color_manual(values = c("drop" = "grey50", "keep" = "black"), name = "")
 dev.off()
 
-mtlim <- 0.2
+mt.lim <- 0.2
 print(paste('Number of cells after applying MT threshold: ', ncol(counts[,mt.fraction < mt.lim])))
-#[1] "Number of cells after applying MT threshold:  53436"
+#"Number of cells after applying MT threshold:  15057" (saving more cells)
 
 # Read data into Bioconductor package SingleCellExperiment
-tryCatch( 
-  expr = {
     sce <- SingleCellExperiment(list(counts=counts[,mt.fraction < mt.lim]),
       colData=DataFrame(metadata[mt.fraction < mt.lim,]))
     rownames(sce) <- genes$gene_id
@@ -130,16 +119,7 @@ tryCatch(
       theme(text = element_text(size=20))  +
       labs(x = "Number of UMIs", y = "Size Factor")
     dev.off()
-  },
-  error = function(e){ 
-    message('Caught an error!')
-    print(e)
-  },
-  warning = function(w){
-    message('Caught an warning!')
-    print(w)
-  }
-)
+
 
 library(tidyverse)
 library(BiocParallel)
@@ -150,7 +130,7 @@ bp <- MulticoreParam(25, RNGseed=1234)
       bpstop(bp)
       table(sce$scDblFinder.class)
 #singlet doublet 
-#  48382    5054 
+#14200     857 
 
 sce_filt <- sce[calculateAverage(sce)>0.01,]
       sce_filt <- logNormCounts(sce_filt)
@@ -158,7 +138,8 @@ sce_filt <- sce[calculateAverage(sce)>0.01,]
 decomp  <- modelGeneVar(sce_filt)
 hvgs    <- rownames(decomp)[decomp$FDR < 0.1]
 length(hvgs)
-#3467
+#91
+write.csv(hvgs,"hvgs.csv")
 pca     <- prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
 rownames(pca$x) <- colnames(sce_filt)
 tsne <- Rtsne(pca$x, pca = FALSE, check_duplicates = FALSE, num_threads=30)
