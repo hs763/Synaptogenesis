@@ -23,7 +23,7 @@ library(reticulate)
 umap = import('umap')  
 
 
-path2data <- "/data2/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H"
+path2data <- "/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H"
 markers   <- paste0(path2data, "geneMarkers.txt")
 
 #sce <- readRDS(paste0(path2data,"sce.rds"))
