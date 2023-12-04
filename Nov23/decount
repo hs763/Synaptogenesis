@@ -2,8 +2,9 @@ https://github.com/rosshandler/Structure-Indentity/blob/main/ParseBioSciences/sc
 ParseBioSciences/scRNAseq/Xdecont.R
 
 cd /data2/hanna/synaptogenesis/newvolume
+#singularity build qc_cell.sif docker://swingett/qc_cell:v0.1
 #singularity build qc_cell2.sif docker://swingett/qc_cell:v0.2
-singularity shell --bind /data2:/mnt qc_cell2.sif
+singularity shell --bind /data2:/mnt qc_cell.sif
 cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H
 
 #open R
@@ -26,8 +27,7 @@ umap = import('umap')
 path2data <- "/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H"
 markers   <- paste0(path2data, "geneMarkers.txt")
 
-#sce <- readRDS(paste0(path2data,"sce.rds"))
-sce <- readRDS("sce.rds")
+sce <- readRDS(paste0(path2data,"/sce.rds"))
 sce <- logNormCounts(sce)
 
 pdf("hist_doublet_score_before_qc.pdf")
@@ -44,10 +44,43 @@ decomp   <- modelGeneVar(sce_hvgs)
 hvgs     <- rownames(decomp)[decomp$FDR < 0.01]
 markers  <- intersect(markers, rownames(sce_hvgs))
 hvgs     <- union(hvgs, markers)
-pca      <- prcomp_irlba(t(logcounts(sce_hvgs[hvgs,])), n = 30)
+pca      <- irlba::prcomp_irlba(t(logcounts(sce_hvgs[hvgs,])), n = 30)
 rownames(pca$x) <- colnames(sce_hvgs)
 
 graph <- buildSNNGraph(pca$x, d = NA, transposed = TRUE)
+library(igraph)
+igraph::write_graph(graph, "igraph")
+
+
+#changing the container
+singularity shell --bind /data2:/mnt qc_cell2.sif
+cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H
+#open R
+library(scran)
+library(celda)
+library(irlba)
+library(scater)
+library(Matrix)
+library(ggplot2)
+library(biomaRt)
+library(viridis)
+
+library(umap)
+library(leiden)
+library(reticulate)
+
+umap = import('umap') 
+
+path2data <- "/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H"
+markers   <- paste0(path2data, "geneMarkers.txt")
+
+sce <- readRDS(paste0(path2data,"/sce.rds"))
+sce <- logNormCounts(sce)
+
+graph <- igraph::read_graph("igraph")
+sce_hvgs <- readRDS("sce_hvgs") 
+
+
 set.seed(42)
 clusters <- leiden(graph, resolution_parameter = 2)
 names(clusters) <-  colData(sce_hvgs)$cell
