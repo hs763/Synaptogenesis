@@ -69,16 +69,14 @@ library(umap)
 library(leiden)
 library(reticulate)
 
-umap = import('umap') 
-
 path2data <- "/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H"
 markers   <- paste0(path2data, "geneMarkers.txt")
 
 sce <- readRDS(paste0(path2data,"/sce.rds"))
 sce <- logNormCounts(sce)
 
-graph <- igraph::read_graph("igraph")
-sce_hvgs <- readRDS("sce_hvgs") 
+graph <- igraph::read_graph(paste0(path2data,"/running_decont/igraph")
+sce_hvgs <- readRDS(paste0(path2data,"/running_decont/sce_hvgs") 
 
 
 set.seed(42)
@@ -87,12 +85,12 @@ names(clusters) <-  colData(sce_hvgs)$cell
 
 sce <- decontX(sce, z=clusters)
 
-saveRDS(sce, paste0(path2data,"sce_decontX.rds"))
+saveRDS(sce, "sce_decontX.rds")
 metadata(sce)$decontX$estimates$all_cells$delta
-#[1] 1.2352165 0.9965378
+[1] 1.708506 1.039109
 
 sce <- decontX(sce, z=clusters, delta = c(1, 10), estimateDelta = FALSE)
-saveRDS(sce, paste0(path2data,"sce_decontX_stringent.rds"))
+saveRDS(sce, "sce_decontX_stringent.rds")
 
 pdf("hist_fraction_contamination.pdf")
 hist(colData(sce)$decontX_contamination, main="decontX", xlab="Fraction of contamination", ylab="Cells")
@@ -102,15 +100,49 @@ dev.off()
 lib.sizes <- colSums(decontXcounts(sce))
 ngenes <- colSums(decontXcounts(sce) > 0)
 sum(lib.sizes > 700)
-#[1] 14198
+#[1] 21687
 sum(ngenes > 500)
-#[1] 34318
-
+#[1] 43193
 
 sce_tmp <- sce[,colData(sce)$doublet_class == "singlet" & lib.sizes > 700 & ngenes > 500]
 sce_tmp <- logNormCounts(sce_tmp, exprs_values = "decontXcounts", name = "decontXlogcounts")
 
-saveRDS(sce_tmp, paste0(path2data,"sce_hardQC.rds"))
+saveRDS(sce_tmp, "sce_hardQC.rds")
+
+#swap to the qc_cell.sif continer (version 1)
+sce <- readRDS("/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H/running_decont/sce_hardQC.rds")
+
+#examine the decont() by looking at the UMAP 
+sce_filt <- sce[calculateAverage(sce)>0.01,]
+      sce_filt <- logNormCounts(sce_filt)
+decomp  <- modelGeneVar(sce_filt)
+hvgs    <- rownames(decomp)[decomp$FDR < 0.1]
+length(hvgs)
+#[1] 3219
+pca     <- irlba::prcomp_irlba(t(logcounts(sce_filt[hvgs,])), n = 30)
+rownames(pca$x) <- colnames(sce_filt)
+
+#n_n=15 m_d=0.5
+umap <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=20, min_dist=.5)
+
+df_plot <- data.frame(
+      colData(sce),
+      name  = as.vector(colData(sce)$day_H), 
+      UMAP1 = umap$layout[,1],
+      UMAP2 = umap$layout[,2] 
+      )
+
+library(ggplot2)
+#plotting different timepoitns
+ggplot(df_plot, aes(x = UMAP1, y = UMAP2, color = factor(name))) +
+        geom_point(size = 0.4) +
+        labs(x = "Dim 1", y = "Dim 2") +
+        theme_minimal() + #theme(legend.position = "none") +
+        theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+        theme(axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+        guides(colour = guide_legend(override.aes = list(size=7)))
+
+
 
 ###########################################################################
 ### Inspect markers to check whether cell type separation has improved ####
@@ -121,11 +153,11 @@ rownames(gexp) <- rowData(sce_tmp)$gene_name
 sce_filt <- sce_tmp[calculateAverage(sce_tmp, assay.type = "decontXcounts")>0.01,]
 rownames(sce_filt) <- rowData(sce_filt)$gene_name
 
-decomp  <- modelGeneVar(sce_filt, assay.type = "decontXlogcounts")
+decomp  <- modelGeneVar(sce, assay.type = "decontXlogcounts")
 hvgs    <- rownames(decomp)[decomp$FDR < 0.01]
 markers <- intersect(markers, rownames(sce_filt))
 hvgs    <- union(hvgs, markers)
-pca     <- prcomp_irlba(t(logcounts(sce_filt,assay.type = "decontXcounts")[hvgs,]), n = 30)
+pca     <- irlba::prcomp_irlba(t(logcounts(sce_filt,assay.type = "decontXcounts")[hvgs,]), n = 30)
 rownames(pca$x) <- colnames(sce_filt)
 layout  <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=30, min_dist=.25)
 
