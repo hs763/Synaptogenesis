@@ -5,7 +5,7 @@ cd /data2/hanna/synaptogenesis/newvolume
 #singularity build qc_cell.sif docker://swingett/qc_cell:v0.1
 #singularity build qc_cell2.sif docker://swingett/qc_cell:v0.2
 singularity shell --bind /data2:/mnt qc_cell.sif
-cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H
+cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H/running_decont
 
 #open R
 library(scran)
@@ -53,7 +53,7 @@ igraph::write_graph(graph, "igraph")
 
 
 #changing the container
-singularity shell --bind /data2:/mnt qc_cell2.sif
+singularity shell --no-home --bind /data2:/mnt qc_cell2.sif
 cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H
 #open R
 library(scran)
@@ -143,9 +143,13 @@ ggplot(df_plot, aes(x = UMAP1, y = UMAP2, color = factor(name))) +
         guides(colour = guide_legend(override.aes = list(size=7)))
 
 
+#Cluster annotations
+
+seurat_obj <- Convert.SingleCellExperiment(from = sce_tmp, to = 'seurat', raw.data.slot = "decontXcounts", data.slot = "decontXlogcounts")
 
 ###########################################################################
 ### Inspect markers to check whether cell type separation has improved ####
+#go back to qc_cell2.sif
 
 gexp <- as.matrix(logcounts(sce_tmp,assay.type = "decontXcounts"))
 rownames(gexp) <- rowData(sce_tmp)$gene_name
@@ -153,11 +157,22 @@ rownames(gexp) <- rowData(sce_tmp)$gene_name
 sce_filt <- sce_tmp[calculateAverage(sce_tmp, assay.type = "decontXcounts")>0.01,]
 rownames(sce_filt) <- rowData(sce_filt)$gene_name
 
-decomp  <- modelGeneVar(sce, assay.type = "decontXlogcounts")
+decomp  <- modelGeneVar(sce_tmp, assay.type = "decontXlogcounts")
 hvgs    <- rownames(decomp)[decomp$FDR < 0.01]
 markers <- intersect(markers, rownames(sce_filt))
 hvgs    <- union(hvgs, markers)
-pca     <- irlba::prcomp_irlba(t(logcounts(sce_filt,assay.type = "decontXcounts")[hvgs,]), n = 30)
+hvgs <- hvgs[!is.na(hvgs)]
+
+p2d   <- '/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sCell/combined/all-well/DGE_unfiltered'
+genes     <- read.csv(paste0(p2d, "/all_genes.csv"))
+hvgs <-  genes[(genes[,1] %in% hvgs),2]
+length(hvgs) 
+#[1] 6849
+
+dim(logcounts(sce_filt,assay.type = "decontXlogcounts")[rownames(logcounts(sce_filt,assay.type = "decontXlogcounts")) %in% hvgs,])
+[1]   826 17899
+
+pca     <- irlba::prcomp_irlba(t(logcounts(sce_filt,assay.type = "decontXlogcounts")[rownames(logcounts(sce_filt,assay.type = "decontXlogcounts")) %in% hvgs,]), n = 30)
 rownames(pca$x) <- colnames(sce_filt)
 layout  <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=30, min_dist=.25)
 
