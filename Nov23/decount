@@ -1,6 +1,40 @@
 https://github.com/rosshandler/Structure-Indentity/blob/main/ParseBioSciences/scRNAseq/Xdecont.R
 ParseBioSciences/scRNAseq/Xdecont.R
 
+#for now
+singularity build qc_cell3.sif docker://hs763/qc_cell3
+singularity shell --no-home --bind /data2:/mnt qc_cell_v3.sif
+cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H/decont2
+#open R
+library(scran)
+library(celda)
+library(irlba)
+library(scater)
+library(Matrix)
+library(ggplot2)
+library(biomaRt)
+library(viridisLite)
+library(viridis)
+
+library(umap)
+library(leiden)
+
+#poblem with this continer is that it does not have the ledien package. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cd /data2/hanna/synaptogenesis/newvolume
 #singularity build qc_cell.sif docker://swingett/qc_cell:v0.1
 #singularity build qc_cell2.sif docker://swingett/qc_cell:v0.2
@@ -75,8 +109,8 @@ markers   <- paste0(path2data, "geneMarkers.txt")
 sce <- readRDS(paste0(path2data,"/sce.rds"))
 sce <- logNormCounts(sce)
 
-graph <- igraph::read_graph(paste0(path2data,"/running_decont/igraph")
-sce_hvgs <- readRDS(paste0(path2data,"/running_decont/sce_hvgs") 
+graph <- igraph::read_graph(paste0(path2data,"/running_decont/igraph"))
+sce_hvgs <- readRDS(paste0(path2data,"/running_decont/sce_hvgs")) 
 
 
 set.seed(42)
@@ -113,7 +147,7 @@ saveRDS(sce_tmp, "sce_hardQC.rds")
 sce <- readRDS("/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H/running_decont/sce_hardQC.rds")
 
 #examine the decont() by looking at the UMAP 
-sce_filt <- sce[calculateAverage(sce)>0.01,]
+sce_filt <- sce_h[calculateAverage(sce_h)>0.01,]
       sce_filt <- logNormCounts(sce_filt)
 decomp  <- modelGeneVar(sce_filt)
 hvgs    <- rownames(decomp)[decomp$FDR < 0.1]
@@ -126,8 +160,8 @@ rownames(pca$x) <- colnames(sce_filt)
 umap <- umap(pca$x, method="umap-learn", umap_learn_args=c("n_neighbors", "n_epochs", "min_dist"), n_neighbors=20, min_dist=.5)
 
 df_plot <- data.frame(
-      colData(sce),
-      name  = as.vector(colData(sce)$day_H), 
+      colData(sce_h),
+      name  = as.vector(colData(sce_h)$day_H), 
       UMAP1 = umap$layout[,1],
       UMAP2 = umap$layout[,2] 
       )
