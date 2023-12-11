@@ -2,6 +2,7 @@ https://github.com/rosshandler/Structure-Indentity/blob/main/ParseBioSciences/sc
 ParseBioSciences/scRNAseq/Xdecont.R
 
 #for now
+cd /data2/hanna/synaptogenesis/newvolume
 singularity build qc_cell3.sif docker://hs763/qc_cell3
 singularity shell --no-home --bind /data2:/mnt qc_cell_v3.sif
 cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H/decont2
@@ -72,6 +73,18 @@ pdf("hist_doublet_score_after_qc.pdf")
 hist(colData(sce[,colData(sce)$doublet_class == "singlet"])$doublet_score, main="", xlab="Doublet score", ylab="Cells")
 dev.off()
 
+lib.sizes <- colSums(counts(sce))
+
+pdf("hist_lib_sizes_zoom.pdf")
+hist(lib.sizes, main="lib.sizes", xlab="lib.size", ylab="Cells number", breaks = seq(0, 1800000, by = 1000), xlim = c(0, 50000))
+dev.off()
+
+ngenes <- colSums(counts(sce) > 0)
+
+pdf("hist_ngenes_zoom.pdf")
+hist(lib.sizes, main="ngenes", xlab="ngenes", ylab="Cells number", breaks = seq(0, 15000000, by = 1000), xlim = c(0, 27000))
+dev.off()
+
 sce_hvgs <- sce[calculateAverage(sce)>0.01,]
 rownames(sce_hvgs) <- rowData(sce_hvgs)$gene_name
 decomp   <- modelGeneVar(sce_hvgs)
@@ -84,6 +97,13 @@ rownames(pca$x) <- colnames(sce_hvgs)
 graph <- buildSNNGraph(pca$x, d = NA, transposed = TRUE)
 library(igraph)
 igraph::write_graph(graph, "igraph")
+
+set.seed(42)
+clusters <- leiden(graph, resolution_parameter = 2)
+names(clusters) <-  colData(sce_hvgs)$cell
+
+saveRDS(clusters, "clusters")
+saveRDS(sce_hvgs, "sce_hvgs")
 
 
 #changing the container
@@ -103,25 +123,27 @@ library(umap)
 library(leiden)
 library(reticulate)
 
-path2data <- "/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H"
+path2data <- "/mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H/"
 markers   <- paste0(path2data, "geneMarkers.txt")
 
 sce <- readRDS(paste0(path2data,"/sce.rds"))
 sce <- logNormCounts(sce)
 
-graph <- igraph::read_graph(paste0(path2data,"/running_decont/igraph"))
-sce_hvgs <- readRDS(paste0(path2data,"/running_decont/sce_hvgs")) 
 
-
-set.seed(42)
-clusters <- leiden(graph, resolution_parameter = 2)
-names(clusters) <-  colData(sce_hvgs)$cell
+sce_hvgs <- readRDS(paste0(path2data,"decont2/sce_hvgs")) 
+clusters <- readRDS(paste0(path2data,"decont2/clusters"))
 
 sce <- decontX(sce, z=clusters)
 
 saveRDS(sce, "sce_decontX.rds")
 metadata(sce)$decontX$estimates$all_cells$delta
 [1] 1.708506 1.039109
+
+sce_human <- assay(sce, "decontXcounts")
+dim(sce_human)
+#119684  53436
+dim(counts(sce))
+#119684  53436
 
 sce <- decontX(sce, z=clusters, delta = c(1, 10), estimateDelta = FALSE)
 saveRDS(sce, "sce_decontX_stringent.rds")
