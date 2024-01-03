@@ -1,4 +1,4 @@
-sudo docker build --no-cache -f total.Dockerfile -t total .
+sudo docker build --no-cache -f total.Dockerfile -t total . --force-rm
 docker run -v $PWD:/mnt --name total -d -i -t total /bin/bash
 docker exec -it total bash
 
@@ -19,10 +19,10 @@ RUN apt update -y
 
 RUN apt install r-base=4.1.2-1ubuntu2  -y
 RUN apt install r-base-dev=4.1.2-1ubuntu2 -y
-RUN apt install curl=7.81.0-1ubuntu1.14 -y
+RUN apt install curl=7.81.0-1ubuntu1.15 -y
 RUN apt install apt-show-versions=0.22.13 -y
 RUN apt install libssl-dev=3.0.2-0ubuntu1.12 -y
-RUN apt install libcurl4-openssl-dev=7.81.0-1ubuntu1.14 -y
+RUN apt install libcurl4-openssl-dev=7.81.0-1ubuntu1.15 -y
 RUN apt install libxml2-dev=2.9.13+dfsg-1ubuntu0.3 -y
 RUN apt install libfontconfig1-dev=2.13.1-4.2ubuntu5 -y 
 RUN apt install libharfbuzz-dev=2.7.4-1ubuntu3.1 -y
@@ -90,7 +90,7 @@ RUN Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/Archive
 RUN Rscript -e 'BiocManager::install("celda", version = "3.14")'
 
 # library(scran)
-RUN Rscript -e 'BiocManager::install_version("RCurl", version="1.98.1.12")'
+RUN Rscript -e 'install.packages("RCurl")'
 RUN Rscript -e 'BiocManager::install_version("GenomeInfoDb", version = "3.17", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'BiocManager::install_version("GenomicRanges", version = "3.17", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'BiocManager::install_version("SummarizedExperiment", version = "3.17", repos = "http://cran.us.r-project.org")'
