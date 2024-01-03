@@ -1,0 +1,55 @@
+#----------------------------needed packges-------------------------------------
+library(scuttle)
+library(irlba)
+library(Rtsne)
+library(Matrix)
+library(ggplot2)
+library(biomaRt)
+library(viridisLite)
+library(viridis)
+library(scDblFinder)
+library(scran)
+library(celda)
+library(scater)
+library(umap)
+library(leiden)
+
+#----------------------------------data----------------------------------------
+#combined raw matrix 
+path2data   <- '/data2/ivanir/Feline2023/ParseBS/newvolume/analysis/sCell/combined/all-well/DGE_unfiltered/'
+sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab', sep = "\t", header = TRUE)
+
+counts    <- t(readMM(paste0(path2data, "DGE.mtx")))
+genes     <- read.csv(paste0(path2data, "all_genes.csv"))
+              #head(genes)
+              #          gene_id gene_name genome
+              #1 ENSG00000000003    TSPAN6   hg38   
+metadata  <- read.csv(paste0(path2data, "cell_metadata.csv"))
+rownames(counts) <- genes$gene_id
+colnames(counts) <- metadata$bc_wells
+
+
+
+#species-separated data
+path2data <- '/data2/hanna/synaptogenesis/newvolume/analysis/Nov2023/'
+
+counts_h <- t(readMM(paste0(path2data, "counts_H.mtx")))
+colnames_h <- read.csv(path2data, "colnames_H.csv")
+rownames_h <- read.csv(path2data, "rownames_H.csv")
+
+counts_m <- t(readMM(paste0(path2data, "counts_M.mtx")))
+colnames_m <- read.csv(path2data, "colnames_M.csv")
+rownames_m <- read.csv(path2data, "wornames_M.csv")
+
+
+
+#sce
+sce_h <- readRDS('/data2/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_H/sce.rds')
+sce_h <- readRDS('/data2/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M/sce.rds')
+
+#---------------------------separating species---------------------------------
+
+#---------------------------------human_QC-------------------------------------
+#---------------------------------mouse_QC-------------------------------------
+#------------------------------human_decount-----------------------------------
+#------------------------------mouse_decount-----------------------------------
