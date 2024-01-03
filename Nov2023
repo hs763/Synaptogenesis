@@ -1,5 +1,5 @@
 cd /data2/hanna/synaptogenesis/newvolume
-singularity shell --bind /data2:/mnt qc-cell.sif
+singularity shell --bind /data2:/mnt qc_cell.sif
 cd /mnt/hanna/synaptogenesis/newvolume/analysis/Nov2023
 
 library(scuttle)
@@ -13,8 +13,8 @@ library(viridisLite)
 library(viridis)
 library(scDblFinder)
 
-path2data   <- '/data2/hanna/synaptogenesis/newvolume/analysis/combined_h/all-well/DGE_unfiltered'
-sample_info <- read.table('/data2/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab',
+path2data   <- '/mnt/hanna/synaptogenesis/newvolume/analysis/combined_h/all-well/DGE_unfiltered'
+sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab',
   sep = "\t", header = TRUE)
 
 counts    <- t(readMM(paste0(path2data, "/DGE.mtx")))
