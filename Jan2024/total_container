@@ -1,4 +1,4 @@
-sudo docker build --no-cache -f total.Dockerfile -t total . --force-rm
+sudo docker build --no-cache -f file.Dockerfile -t total . --force-rm
 docker run -v $PWD:/mnt --name total -d -i -t total /bin/bash
 docker exec -it total bash
 
