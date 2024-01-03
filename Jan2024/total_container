@@ -90,7 +90,7 @@ RUN Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/Archive
 RUN Rscript -e 'BiocManager::install("celda", version = "3.14")'
 
 # library(scran)
-RUN Rscript -e 'install_version("RCurl", version="1.98.1.12")'
+RUN Rscript -e 'BiocManager::install_version("RCurl", version="1.98.1.12")'
 RUN Rscript -e 'BiocManager::install_version("GenomeInfoDb", version = "3.17", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'BiocManager::install_version("GenomicRanges", version = "3.17", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'BiocManager::install_version("SummarizedExperiment", version = "3.17", repos = "http://cran.us.r-project.org")'
