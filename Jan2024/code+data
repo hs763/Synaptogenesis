@@ -96,14 +96,50 @@ counts   <- counts[,ngenes/lib.sizes < 0.9]
 metadata <- metadata[ngenes/lib.sizes < 0.9,]
 lib.sizes <- colSums(counts)
 ngenes    <- colSums(counts > 0)
-
+#the plot looks srange as there are so many celsl with very little ngenes. 
 
 #cell complexity filter
+ensembl_m <- useEnsembl(biomart = "ensembl",  dataset = "mmusculus_gene_ensembl",mirror="useast")
+gene_map_m  <- getBM(attributes=c("ensembl_gene_id", "mgi_symbol", "chromosome_name"),
+  filters = "mgi_symbol", values = genes$gene_name, mart = ensembl)
 
+ensembl_h <- useEnsembl(biomart = "ensembl",  dataset = "hsapiens_gene_ensembl",mirror="useast")
+gene_map_h  <- getBM(attributes=c("ensembl_gene_id", "hgnc_symbol", "chromosome_name"),
+  filters = "hgnc_symbol", values = genes$gene_name, mart = ensembl)
 
+ensembl <- ensembl_m + ensembl_h
+gene_map <- gene_map_m + gene_map_h
 
+mt.index    <- gene_map$chromosome_name == "MT"
+mt.counts   <- counts[which(genes$gene_name %in% gene_map$hgnc_symbol[mt.index]), ]
+mt.fraction <- colSums(mt.counts)/lib.sizes
+mt.p   <- pnorm(mt.fraction, mean = median(mt.fraction), sd = mad(mt.fraction), lower.tail = FALSE)
 
+mt.lim <- 0.2
 
+metadata <- data.frame(cbind(metadata,mt.fraction))
+
+#Plot mitochondrial treshold 
+pdf("mtreadfraction.pdf")
+qplot(lib.sizes, mt.fraction, col = ifelse(mt.fraction>mt.lim, "drop", "keep")) +
+  scale_x_log10() +
+  labs(x = "UMI count", y = "MT read fraction") +
+  theme_minimal() + 
+  theme(text = element_text(size=20),legend.position = "none")  +
+  scale_color_manual(values = c("drop" = "grey50", "keep" = "black"), name = "")
+dev.off()
+
+pdf("cellcomplexity.pdf")
+ggplot(aes(x=metadata$tscp_count, y=metadata$gene_count, color=metadata$mt.fraction)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	stat_smooth(method=lm) +
+  	scale_x_log10() + 
+  	scale_y_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample)
 
 #adding the sample names in terms of days into the sample_info 
 sample_bc1_well <- rep(NA, nrow(metadata))        
