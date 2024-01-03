@@ -53,6 +53,150 @@ sce_h <- readRDS('/data2/hanna/synaptogenesis/newvolume/analysis/Nov2023/QC_M/sc
 
 #---------------------------separating species---------------------------------
 
+#import data
+path2data   <- '/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sCell/combined/all-well/DGE_unfiltered'
+sample_info <- read.table('/mnt/ivanir/Feline2023/ParseBS/newvolume/analysis/sample_info.tab',
+  sep = "\t", header = TRUE)
+
+counts    <- t(readMM(paste0(path2data, "/DGE.mtx")))
+genes     <- read.csv(paste0(path2data, "/all_genes.csv"))
+metadata  <- read.csv(paste0(path2data, "/cell_metadata.csv"))
+
+rownames(counts) <- genes$gene_id 
+colnames(counts) <- metadata$bc_wells
+
+#what are the parameters 
+lib.sizes <- colSums(counts)
+ngenes    <- colSums(counts > 0)
+
+print(paste('Number of genes: ', nrow(counts)))
+print(paste('Number of cells: ', ncol(counts)))
+
+
+#applying intial filteres (?)
+#UMI (lib.sizes) filter based on article: https://hbctraining.github.io/scRNA-seq/lessons/04_SC_quality_control.html
+pdf("/mnt/hanna/synaptogenesis/newvolume/analysis/Jan2024", "UMI_hist.pdf", sep="/")
+hist(lib.sizes)
+#determinign the gene number filter 
+pdf("/mnt/hanna/synaptogenesis/newvolume/analysis/Jan2024", "ngenes_hist.pdf", sep="/")
+hist(ngenes)
+
+#counts   <- counts[,ngenes > 400 & lib.sizes > 500]
+#metadata <- metadata[ngenes > 400 & lib.sizes > 500,]
+#lib.sizes <- colSums(counts)
+#ngenes    <- colSums(counts > 0)
+#print(paste('Number of genes: ', nrow(counts)))
+#print(paste('Number of cells: ', ncol(counts)))
+
+#ngens/UMIs filter
+pdf("/mnt/hanna/synaptogenesis/newvolume/analysis/Jan2024", "ngenes/lib.sizes_hist.pdf", sep="/")
+hist(ngenes/lib.sizes)
+
+counts   <- counts[,ngenes/lib.sizes < 0.9]
+metadata <- metadata[ngenes/lib.sizes < 0.9,]
+lib.sizes <- colSums(counts)
+ngenes    <- colSums(counts > 0)
+
+
+#cell complexity filter
+
+
+
+
+
+
+#adding the sample names in terms of days into the sample_info 
+sample_bc1_well <- rep(NA, nrow(metadata))        
+sample_number   <- rep(NA, nrow(metadata))
+sample_name_H    <- rep(NA, nrow(metadata))
+sample_name_M    <- rep(NA, nrow(metadata))
+
+#editing sample info
+sample_info$H_day <- sample_info$H_Timepoint 
+sample_info$H_day <- gsub("55\\+","",sample_info$H_day)
+sample_info$H_day <- as.integer(sample_info$H_day)
+sample_info$H_day <-  sample_info$H_day +55
+sample_info$Sample_name_H <- paste(sample_info$H_Batch, sample_info$H_day, sample_info$H_Replicate, sep="_")
+
+sample_info$M_day <- sample_info$M_Timepoint
+sample_info$M_day <- gsub("8\\+","",sample_info$M_day)
+sample_info$M_day <- as.integer(sample_info$M_day)
+sample_info$M_day <-  sample_info$M_day +8
+sample_info$Sample_name_M <- paste(sample_info$M_Batch, sample_info$M_day, sample_info$M_Replicate, sep="_")
+
+samples <- unique(sample_info$Sample_well)
+for (i in 1:length(samples)){
+  sample_bc1_well[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))] <- sample_info$Sample_well[i]
+  sample_number[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]   <- sample_info$Sample_Number[i]
+  sample_name_H[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]     <- sample_info$Sample_name_H[i]
+  sample_name_M[metadata$bc1_well %in% unlist(strsplit(samples[i],split=","))]     <- sample_info$Sample_name_M[i]
+}
+
+submeta_H <- data.frame(rlist::list.rbind(strsplit(sample_name_H, split="_")))
+colnames(submeta_H) <- c("batch_H", "day_H", "replicate_H")
+submeta_H$day_H <- gsub("d","",submeta_H$day_H)
+
+submeta_M <- data.frame(rlist::list.rbind(strsplit(sample_name_M, split="_")))
+colnames(submeta_M) <- c("batch_M", "day_M", "replicate_M")
+submeta_M$day_M <- gsub("d","",submeta_M$day_M)
+
+metadata <- data.frame(cbind(metadata, lib.sizes, sample_number, sample_bc1_well, sample_name_H, sample_name_M, submeta_H, submeta_M))
+
+
+#finding mapping rates to human and mouse genomes 
+metadata$rate_h <- metadata$hg38_tscp_count/metadata$tscp_count
+metadata$rate_m <- metadata$mm10_tscp_count/metadata$tscp_count
+
+#PLOTTING MAPPIGN RATE TO DECIDE ON THE TRESHOLDS 
+pdf("human_tscp_mapping_rate.pdf")
+ggplot(metadata, aes(x=rate_h)) + geom_histogram(color="blue", fill= "blue", bins=30)
+dev.off()
+
+pdf("mouse_tscp_mapping_rate.pdf")
+ggplot(metadata, aes(x=rate_m)) + geom_histogram(color="orange", fill= "orange", bins=30)
+dev.off()
+
+#rate_h >< rate_m method 
+metadata$cell_specie <- rep(NA, nrow(metadata))
+for (i in 1:nrow(metadata)){
+  if (metadata$rate_h[i] > metadata$rate_m[i]){
+    metadata$cell_species[i] <- "h"}
+  else {metadata$cell_species[i] <- "m"
+  }
+}
+
+
+#cutoff#1 0.75 percent for both
+metadata2 <- metadata 
+metadata2$cell_species <- rep(NA, nrow(metadata2))
+for (i in 1:nrow(metadata2)) {
+  if (metadata2$rate_h[i] > 0.75) {
+    metadata2$cell_species[i] <- "h"
+  } else if (metadata2$rate_m[i] > 0.75) {
+    metadata2$cell_species[i] <- "m"
+  } else {
+    metadata2$cell_species[i] <- "0"
+  }
+}
+
+subset_h2 <- metadata2[metadata2$cell_species == "h",]
+subset_m2 <- metadata2[metadata2$cell_species == "m",]
+
+print(paste('Number of huamn cells for cuttoff 0.75: ', nrow(subset_h2)))
+print(paste('Number of mouse cells for cuttoff 0.75: ', nrow(subset_m2)))
+print(paste('Cells lost: ', (ncol(counts) - (nrow(subset_h2) + nrow(subset_m2)))))
+print(paste('Total number of cells: ', ((nrow(subset_h2) + nrow(subset_m2)))))
+[1] "Number of huamn cells for cuttoff 0.75:  53480"
+[1] "Number of mouse cells for cuttoff 0.75:  15068"
+[1] "Cells lost:  1904"
+[1] "Total number of cells:  68548"
+
+
+#saving the counts matrices for human andn mosue cells
+
+
+
+
 #---------------------------------human_QC-------------------------------------
 #---------------------------------mouse_QC-------------------------------------
 #------------------------------human_decount-----------------------------------
