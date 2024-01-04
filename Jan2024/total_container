@@ -55,7 +55,7 @@ RUN Rscript -e 'BiocManager::install(version = "3.14")'
 RUN Rscript -e 'BiocManager::install("biomaRt", version = "3.14")'
 
 #library(viridisLite)
-RUN Rscript -e 'BiocManager::install("viridisLite", version = "3.7")'
+RUN Rscript -e 'BiocManager::install("viridisLite", version = "3.14")'
 
 #library(leiden)
 RUN Rscript -e 'BiocManager::install("leiden", version = "0.4.3.1")'
