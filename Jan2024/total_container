@@ -38,12 +38,6 @@ RUN apt install libmagick++-dev=8:6.9.11.60+dfsg-1.3ubuntu0.22.04.3 -y
 RUN Rscript -e 'install.packages("devtools")'
 RUN Rscript -e 'devtools::install_version("devtools", version="2.4.5", repos = "http://cran.us.r-project.org")'
 
-#library(viridisLite)
-RUN Rscript -e 'BiocManager::install("viridisLite", version = "3.7")'
-
-#library(leiden)
-RUN Rscript -e 'BiocManager::install("leiden", version = "0.4.3.1")'
-
 # library(tidyverse)
 RUN Rscript -e 'devtools::install_version("xml2", version="1.3.5", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'devtools::install_version("systemfonts", version="1.0.4", repos = "http://cran.us.r-project.org")'
@@ -59,6 +53,12 @@ RUN Rscript -e 'devtools::install_version("viridis", version="0.6.4", repos = "h
 RUN Rscript -e 'devtools::install_version("BiocManager", version="1.30.22", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'BiocManager::install(version = "3.14")'
 RUN Rscript -e 'BiocManager::install("biomaRt", version = "3.14")'
+
+#library(viridisLite)
+RUN Rscript -e 'BiocManager::install("viridisLite", version = "3.7")'
+
+#library(leiden)
+RUN Rscript -e 'BiocManager::install("leiden", version = "0.4.3.1")'
  
 # library(irlba)
 RUN Rscript -e 'devtools::install_version("irlba", version="2.3.5.1", repos = "http://cran.us.r-project.org")'
