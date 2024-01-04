@@ -91,12 +91,12 @@ RUN Rscript -e 'BiocManager::install("celda", version = "3.14")'
 
 # library(scran)
 RUN Rscript -e 'install.packages("RCurl")'
-RUN Rscript -e 'BiocManager::install("GenomeInfoDb", version = "3.17")'
-RUN Rscript -e 'BiocManager::install("GenomicRanges", version = "3.17")' 
-RUN Rscript -e 'BiocManager::install("SummarizedExperiment", version = "3.17")'
-RUN Rscript -e 'BiocManager::install("SingleCellExperiment", version = "3.17")'
-RUN Rscript -e 'BiocManager::install("scuttle", version = "3.17")'
-RUN Rscript -e 'BiocManager::install("scran", version = "3.17")'
+RUN Rscript -e 'BiocManager::install("GenomeInfoDb", version = "3.14")'
+RUN Rscript -e 'BiocManager::install("GenomicRanges", version = "3.14")' 
+RUN Rscript -e 'BiocManager::install("SummarizedExperiment", version = "3.14")'
+RUN Rscript -e 'BiocManager::install("SingleCellExperiment", version = "3.14")'
+RUN Rscript -e 'BiocManager::install("scuttle", version = "3.14")'
+RUN Rscript -e 'BiocManager::install("scran", version = "3.14")'
 
 #library(viridisLite)
 RUN Rscript -e 'BiocManager::install("viridisLite", version = "0.4.2")'
