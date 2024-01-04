@@ -107,11 +107,12 @@ ensembl_h <- useEnsembl(biomart = "ensembl",  dataset = "hsapiens_gene_ensembl",
 gene_map_h  <- getBM(attributes=c("ensembl_gene_id", "hgnc_symbol", "chromosome_name"),
   filters = "hgnc_symbol", values = genes$gene_name, mart = ensembl)
 
-ensembl <- ensembl_m + ensembl_h
-gene_map <- gene_map_m + gene_map_h
+colnames(gene_map_h) <- c("ensembl_gene_id","symbol","chromosome_name")
+colnames(gene_map_m) <- c("ensembl_gene_id","symbol","chromosome_name")
+gene_map <- rbind(gene_map_m, gene_map_h)
 
 mt.index    <- gene_map$chromosome_name == "MT"
-mt.counts   <- counts[which(genes$gene_name %in% gene_map$hgnc_symbol[mt.index]), ]
+mt.counts   <- counts[which(genes$gene_name %in% gene_map$symbol[mt.index]), ]
 mt.fraction <- colSums(mt.counts)/lib.sizes
 mt.p   <- pnorm(mt.fraction, mean = median(mt.fraction), sd = mad(mt.fraction), lower.tail = FALSE)
 
@@ -129,7 +130,7 @@ qplot(lib.sizes, mt.fraction, col = ifelse(mt.fraction>mt.lim, "drop", "keep")) 
   scale_color_manual(values = c("drop" = "grey50", "keep" = "black"), name = "")
 dev.off()
 
-pdf("cellcomplexity.pdf")
+pdf("cellcomplexity.pdf") #ther is an error 'data` must be a <data.frame>'
 ggplot(aes(x=metadata$tscp_count, y=metadata$gene_count, color=metadata$mt.fraction)) + 
   	geom_point() + 
 	scale_colour_gradient(low = "gray90", high = "black") +
