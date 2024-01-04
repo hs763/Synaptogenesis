@@ -1,4 +1,4 @@
-sudo docker build --no-cache -f file.Dockerfile -t total . --force-rm
+sudo docker build --no-cache -f total.Dockerfile -t total . --force-rm
 docker run -v $PWD:/mnt --name total -d -i -t total /bin/bash
 docker exec -it total bash
 
@@ -84,22 +84,22 @@ RUN Rscript -e 'devtools::install_version("assertive.files", version="0.0.2", re
 RUN Rscript -e 'devtools::install_version("assertive.numbers", version="0.0.2", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/assertive.properties/assertive.properties_0.0-5.tar.gz")'
 RUN Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/assertive.types/assertive.types_0.0-3.tar.gz")'
-RUN Rscript -e 'devtools::install_version("gridGraphics", version="0.5.1")'
-RUN Rscript -e 'devtools::install_version("magick", version="2.8.1")'
+RUN Rscript -e 'devtools::install_version("gridGraphics", version="0.5.1", repos = "http://cran.us.r-project.org")'
+RUN Rscript -e 'devtools::install_version("magick", version="2.8.1", repos = "http://cran.us.r-project.org")'
 RUN Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/multipanelfigure/multipanelfigure_2.1.2.tar.gz")'
 RUN Rscript -e 'BiocManager::install("celda", version = "3.14")'
 
 # library(scran)
 RUN Rscript -e 'install.packages("RCurl")'
-RUN Rscript -e 'BiocManager::install_version("GenomeInfoDb", version = "3.17", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'BiocManager::install_version("GenomicRanges", version = "3.17", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'BiocManager::install_version("SummarizedExperiment", version = "3.17", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'BiocManager::install_version("SingleCellExperiment", version = "3.17", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'BiocManager::install_version("scuttle", version = "3.17", repos = "http://cran.us.r-project.org")'
-RUN Rscript -e 'BiocManager::install_version("scran", version = "3.17", repos = "http://cran.us.r-project.org")'
+RUN Rscript -e 'BiocManager::install("GenomeInfoDb", version = "3.17")'
+RUN Rscript -e 'BiocManager::install("GenomicRanges", version = "3.17")' 
+RUN Rscript -e 'BiocManager::install("SummarizedExperiment", version = "3.17")'
+RUN Rscript -e 'BiocManager::install("SingleCellExperiment", version = "3.17")'
+RUN Rscript -e 'BiocManager::install("scuttle", version = "3.17")'
+RUN Rscript -e 'BiocManager::install("scran", version = "3.17")'
 
 #library(viridisLite)
-RUN Rscript -e 'BiocManager::install_version("viridisLite", version = "0.4.2", repos = "http://cran.us.r-project.org")'
+RUN Rscript -e 'BiocManager::install("viridisLite", version = "0.4.2")'
 
 #library(leiden)
-RUN Rscript -e 'BiocManager::install_version("leiden", version = "0.4.3.1", repos = "http://cran.us.r-project.org")'
+RUN Rscript -e 'BiocManager::install("leiden", version = "0.4.3.1")'
