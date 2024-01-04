@@ -2,9 +2,9 @@ sudo docker build --no-cache -f total.Dockerfile -t total . --force-rm
 docker run -v $PWD:/mnt --name total -d -i -t total /bin/bash
 docker exec -it total bash
 
-sudo docker tag d2c30b008c7f hs763/total
+sudo docker tag 2ff41d74afe7 hs763/total
 docker ps 
-sudo docker push hs763/qc_cell3
+sudo docker push hs763/total
 
 #Dockerfile
 FROM ubuntu:jammy-20231004
@@ -104,4 +104,6 @@ RUN Rscript -e 'BiocManager::install("SingleCellExperiment", version = "3.14")'
 RUN Rscript -e 'BiocManager::install("scuttle", version = "3.14")'
 RUN Rscript -e 'BiocManager::install("scran", version = "3.14")'
 
+#add library seurat
+RUN Rscript -e 'install.packages('Seurat')'
 
