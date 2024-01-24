@@ -2,6 +2,7 @@
 #builfing the contienr based on the dockerhub link of it. The contienr has been already created and now I am importing it into the new place. 
 singularity build total.sif docker://hs763/total
 #using the container when it is already 
+singularity shell --no-home --bind /Hania/demixing:/mnt total.sif
 
 #----------------------------needed packges-------------------------------------
 library(tidyverse)
