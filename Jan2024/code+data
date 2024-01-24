@@ -1,3 +1,8 @@
+#-------------------------------containers-------------------------------------
+#builfing the contienr based on the dockerhub link of it. The contienr has been already created and now I am importing it into the new place. 
+singularity build total.sif docker://hs763/total
+#using the container when it is already 
+
 #----------------------------needed packges-------------------------------------
 library(tidyverse)
 library(viridis)
