@@ -108,13 +108,7 @@ ggplot(metadata, aes(x=rate_m)) + geom_histogram(color="orange", fill= "orange",
 dev.off()
 
 #rate_h >< rate_m method 
-metadata$cell_specie <- rep(NA, nrow(metadata))
-for (i in 1:nrow(metadata)){
-  if (metadata$rate_h[i] > metadata$rate_m[i]){
-    metadata$cell_species[i] <- "h"}
-  else {metadata$cell_species[i] <- "m"
-  }
-}
+metadata$cell_species <- ifelse(metadata$rate_h > metadata$rate_m, "h", "m")
 
 #cutoff#1 0.75 percent for both
 metadata2 <- metadata 
