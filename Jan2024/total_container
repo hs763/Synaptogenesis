@@ -15,7 +15,12 @@ docker ps -a #to fidn out your continer id (as confirmed the number htere was my
 docker commit b8016a5e0257 hs763/total_v2
 docker push hs763/total_v2
 
-docker commit container_id username/new_image:tag
+#builfing the contienr based on the dockerhub link of it. The contienr has been already created and now I am importing it into the new place. 
+singularity build total.sif docker://hs763/total
+#using the container when it is already 
+singularity shell --no-home --bind /Hania/demixing:/mnt total.sif
+
+
 
 
 #Dockerfile
