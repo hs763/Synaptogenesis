@@ -6,6 +6,18 @@ sudo docker tag 2ff41d74afe7 hs763/total
 docker ps 
 sudo docker push hs763/total
 
+#altering the existing container
+docker pull hs763/total
+docker run -it hs763/total /bin/bash
+#isntall new packages
+#after you ar finished say exit (root@b8016a5e0257:/# ) the nuber here is your id btw. 
+docker ps -a #to fidn out your continer id (as confirmed the number htere was my conteinr id)
+docker commit b8016a5e0257 hs763/total_v2
+docker push hs763/total_v2
+
+docker commit container_id username/new_image:tag
+
+
 #Dockerfile
 FROM ubuntu:jammy-20231004
 
@@ -104,6 +116,10 @@ RUN Rscript -e 'BiocManager::install("SingleCellExperiment", version = "3.14")'
 RUN Rscript -e 'BiocManager::install("scuttle", version = "3.14")'
 RUN Rscript -e 'BiocManager::install("scran", version = "3.14")'
 
-#add library seurat
-RUN Rscript -e 'install.packages('Seurat')'
+#library(Seurat)
+RUN Rscript -e 'install.packages("Seurat")'
+
+#library(SoupX)
+Rscript -e  'install.packages("SoupX")'
+
 
