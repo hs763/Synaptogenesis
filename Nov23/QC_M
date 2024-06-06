@@ -51,7 +51,9 @@ dev.off()
 
 
 # Get ENSEMBL annotations
-ensembl <- useEnsembl(biomart = "ensembl",  dataset = "mmusculus_gene_ensembl",mirror="useast")
+#ensembl <- useEnsembl(biomart = "ensembl",  dataset = "mmusculus_gene_ensembl",mirror="useast")
+library(biomaRt)
+ensembl <- useEnsembl(biomart = "ensembl", dataset = "mmusculus_gene_ensembl", mirror = "uswest")
 
 gene_map  <- getBM(attributes=c("ensembl_gene_id", "mgi_symbol", "chromosome_name"),
   filters = "mgi_symbol", values = genes$gene_name, mart = ensembl)
